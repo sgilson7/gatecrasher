@@ -19,6 +19,14 @@ pub const RADIUS: i32 = ratio(35, 100);
 pub const HEIGHT_STAND: i32 = ratio(18, 10);
 pub const HEIGHT_CROUCH: i32 = ratio(11, 10);
 pub const HEIGHT_PRONE: i32 = ratio(5, 10);
+/// The walk cycle: one full stride (a step with each foot) covers
+/// `STRIDE + STRIDE_GROW × speed` metres, so legs lengthen their stride as
+/// they speed up: about 1.5 m walking, 3 m running, 4.6 m sprinting.
+pub const STRIDE: i32 = ratio(6, 10);
+pub const STRIDE_GROW: i32 = ratio(6, 10);
+/// The mule's four legs reach further.
+pub const MULE_STRIDE: i32 = int(1);
+pub const MULE_STRIDE_GROW: i32 = ratio(5, 10);
 pub const SPEED_SPRINT: i32 = ratio(68, 10);
 pub const SPEED_RUN: i32 = ratio(40, 10);
 pub const SPEED_CROUCH: i32 = ratio(20, 10);

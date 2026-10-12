@@ -412,7 +412,7 @@ impl Soldier {
         if let Some(h) = heading {
             self.turn_to(h, dt * 2);
         }
-        self.walk_phase = (self.walk_phase + fx::mul(speed, dt) * 3) & (fx::TURN - 1);
+        self.walk_phase = crate::player::stride(self.walk_phase, speed, dt, STRIDE, STRIDE_GROW);
         self.path.is_empty() && v3(self.pos.x, 0, self.pos.z).dist(flat) < int(1)
     }
 
@@ -486,7 +486,8 @@ impl Soldier {
                         if let Some(h) = h {
                             self.turn_to(h, dt * 2);
                         }
-                        self.walk_phase = (self.walk_phase + fx::mul(WALK, dt) * 3) & (fx::TURN - 1);
+                        self.walk_phase =
+                            crate::player::stride(self.walk_phase, WALK, dt, STRIDE, STRIDE_GROW);
                     }
                     self.mind = Mind::Search { at, t };
                 }

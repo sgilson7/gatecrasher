@@ -72,7 +72,7 @@ export function makeHud(copy, display) {
       el("h-battery").style.width = `${p.battery}%`;
       el("h-battery").style.opacity = p.cloak ? "1" : "0.55";
       el("h-fultons").textContent = p.fultons;
-      el("h-mule").textContent = p.mule_loaded ? copy.mule_loaded : p.mule_vance ? copy.mule_vance : "";
+      el("h-mule").textContent = p.mule_loaded ? copy.mule_loaded : p.mule_grace ? copy.mule_grace : "";
       const rounds = el("h-rounds");
       rounds.textContent = copy[`rounds_${p.rounds}`];
       rounds.parentElement.classList.toggle("lethal", p.rounds === "lethal");

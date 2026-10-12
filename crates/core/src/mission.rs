@@ -265,12 +265,19 @@ pub struct Recruits {
     pub second: Vec<String>,
     pub units: Vec<String>,
     pub grades: Vec<String>,
+    /// what a soldier radios on landing at Graceland; `{}` is his codename
+    pub thanks: Vec<String>,
 }
 
 pub fn parse_recruits(json: &str) -> Result<Recruits, String> {
     let r: Recruits = serde_json::from_str(json).map_err(|e| format!("recruits.json: {e}"))?;
-    if r.first.is_empty() || r.second.is_empty() || r.units.len() != 3 || r.grades.is_empty() {
-        return Err("recruits.json: needs names, three units and grades".into());
+    if r.first.is_empty()
+        || r.second.is_empty()
+        || r.units.len() != 3
+        || r.grades.is_empty()
+        || r.thanks.is_empty()
+    {
+        return Err("recruits.json: needs names, three units, grades and thanks".into());
     }
     Ok(r)
 }

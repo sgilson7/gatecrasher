@@ -1,12 +1,12 @@
 # Gatecrasher
 
-A third-person stealth game that runs in the browser. You infiltrate one quarter of a walled island outpost, the same zone in every mission, with a silenced pistol, a portal gun and a mule. Soldiers see and hear you the way they do in Metal Gear Solid V, and one bullet kills you. Each mission tells you only what to do; where and who you find out by interrogating the soldiers. Every mission ends when you escape to the landing zone.
+A third-person stealth game that runs in the browser. You are Big Chum, a legendary soldier every soldier on the island dreams of serving with. You infiltrate one quarter of a walled island outpost, the same zone in every mission, with a silenced pistol, a portal gun and a mule. Soldiers see and hear you the way they do in Metal Gear Solid V, and one bullet kills you. Each mission tells you only what to do; where and who you find out by interrogating the soldiers. Every mission ends when you escape to the landing zone.
 
 **Play:** https://sgilson7.github.io/gatecrasher/
 
 ## The missions
 
-- **Caged Bird.** Rescue Corporal Vance. Nobody says where he is held until you make someone talk.
+- **Caged Bird.** Rescue Corporal Grace. Nobody says where he is held until you make someone talk.
 - **Red Beret.** Eliminate Colonel Varga, one of three officers in red berets. Find out which one he is.
 - **Gate Lens.** Recover a black case from somewhere on the site. More of the elite soldiers are out, and their lenses can see your portals.
 
@@ -22,8 +22,8 @@ Each mission has its own soldiers, routes, start, landing zone and intel. Soldie
 - **CQC.** Crouch-walking up behind a soldier is silent. F behind him grabs him; then E interrogates, F chokes him out, X kills, C throws him down. F from the front takes his rifle and throws him; aim at him on the ground and E interrogates him.
 - **Hold-ups.** Aim at a soldier close up who has noticed you, or whose back is to you, and he drops his rifle and puts his hands up. E interrogates him and F grabs him. Take the gun off him for long and he picks the rifle up and radios in.
 - **Bodies.** Carry them (E) and leave them in a bush or a locker. A soldier who finds a body raises the caution phase; one who finds a sleeper wakes him.
-- **The Memphis Mule.** He follows you and soldiers never notice him. H whistles him over. M sends him to ram the soldier you point at. Y ties a soldier to his back (one lying near you, on your shoulder or in your hold), or puts Corporal Vance on; if the mule is far, Y calls him over; E interrogates a soldier tied there, who almost always talks and tells more. J rides him: fast, and seen and heard from far off. Soldiers waking a tranquillised buddy kick him awake. The mule also marks soldiers he smells nearby.
-- **Fulton.** G sends a downed soldier up on a balloon, outdoors, to your base, Graceland. Recruits are kept between visits, and each unit's level improves your kit: R&D adds tranquilliser rounds, Support adds active camo time, Intel lengthens the mule's nose.
+- **The Memphis Mule.** He follows you and soldiers never notice him. H whistles him over. M sends him to ram the soldier you point at. Y ties a soldier to his back (one lying near you, on your shoulder or in your hold), or puts Corporal Grace on; if the mule is far, Y calls him over; E interrogates a soldier tied there, who almost always talks and tells more. J rides him: fast, and seen and heard from far off. Soldiers waking a tranquillised buddy kick him awake. The mule also marks soldiers he smells nearby.
+- **Fulton.** G sends a downed soldier up on a balloon, outdoors, to your base, Graceland. The soldiers on this outpost hate serving it; each one you extract radios his thanks on landing and signs on with Big Chum. Recruits are kept between visits, and each unit's level improves your kit: R&D adds tranquilliser rounds, Support adds active camo time, Intel lengthens the mule's nose.
 - **Detection.** A soldier's sight is drawn on the ground. White ticks round the screen centre show who is noticing you. At full awareness the game drops into reflex mode, five seconds of slow motion to put him down; miss it and the base goes to alert, then evasion, then caution.
 
 Press I for the intel you have, Esc to pause, N for sound.

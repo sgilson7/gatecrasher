@@ -14,7 +14,7 @@
 
 - Third person, over the right shoulder, with a camera that pulls in front of walls; aiming zooms in.
 - One zone, a quarter of an island outpost (`world.rs`), used by all three missions.
-- Three missions with different objectives, targets, soldiers, starts and landing zones (`data/missions.json`): rescue Corporal Vance (held in the warehouse cage, not the cell block), eliminate Colonel Varga (one of three red berets), recover the Gate Lens case (on the comms deck, reachable only by portal). Escape to the landing zone ends each.
+- Three missions with different objectives, targets, soldiers, starts and landing zones (`data/missions.json`): rescue Corporal Grace (held in the warehouse cage, not the cell block), eliminate Colonel Varga (one of three red berets), recover the Gate Lens case (on the comms deck, reachable only by portal). Escape to the landing zone ends each.
 - Nothing about where or who is known at the start; interrogation (CQC hold, or tied to the mule) reveals it. Soldiers who know nothing mark their neighbours.
 - MGS V detection: drawn sight cones, an awareness meter with suspicious, investigate and spotted stages, hearing by gait and ground, reflex mode, then alert, evasion and caution. One hit kills.
 - MGS3 camo index from four uniforms against five grounds, plus stance, movement, bushes, grass and shade; active camo on a battery.
@@ -23,7 +23,7 @@
 - CQC: grab, interrogate, choke, kill, throw; a disarming throw from the front. Crouch-walking up behind a soldier is silent and unfelt (after Sam's first play, N16).
 - MGS V hold-ups: aim at a soldier close up and he drops his rifle and raises his hands; E interrogates; a pinned soldier on the ground talks too.
 - Portals on large walls and floors with momentum through them; with both open, each shows the view out of the other (stencil windows, one level deep) and shots pass through; only elites see them, and they shut what they see.
-- The Memphis Mule: follows, whistle, ram, tie and interrogate (E), carries Vance, can be ridden (fast and loud), sniff-marking, never detected. Soldiers kick sleeping buddies awake.
+- The Memphis Mule: follows, whistle, ram, tie and interrogate (E), carries Grace, can be ridden (fast and loud), sniff-marking, never detected. Soldiers kick sleeping buddies awake.
 - Fulton recruits to Graceland, kept in local storage, with unit levels that improve the next mission's kit.
 - TikZ art in the Sam_Comm_final look: title, failed, complete, Graceland, three mission cards, the mule (`tools/art.py`).
 
@@ -45,10 +45,11 @@ See `SECOND-ORDER.md` for each: no reload (N6), Graceland is a screen (N4), desk
 
 | Command | Result |
 | --- | --- |
-| `./scripts/check.sh` (local, after sneaking, hold-ups, kicks, mule interrogation, Vance on the mule, riding) | BUILDER CHECK PASSED: 84 core tests, 11 boundary tests, browser check in three engines; pushed as `dacdf6e` |
+| `./scripts/check.sh` (local, after sneaking, hold-ups, kicks, mule interrogation, Grace on the mule, riding) | BUILDER CHECK PASSED: 84 core tests, 11 boundary tests, browser check in three engines; pushed as `dacdf6e` |
 | `./scripts/check.sh` (local, after portal views and shots through portals) | BUILDER CHECK PASSED: 88 core tests, 11 boundary tests, browser check in three engines |
 | GitHub Actions on `39d0f4f`, then `tests/browser/check.py` against the live site | check passed and deployed (1 min 57 s); BROWSER CHECK PASSED in three engines live |
 | `./scripts/check.sh` (local, after the mule-tie fix, N23) | BUILDER CHECK PASSED: 92 core tests, 11 boundary tests, browser check in three engines |
+| `./scripts/check.sh` (local, after human-paced walk cycles N24, Corporal Grace N25, Big Chum and the thank-you on landing N26) | BUILDER CHECK PASSED: 93 core tests, 11 boundary tests, browser check in three engines |
 | Headless Chromium screenshots | portal window shows the far side (a palm tree in front of the blue portal, in the orange window); riding shows camo −60 % |
 
 ## Next

@@ -23,6 +23,13 @@ pub enum Gait {
     Sprint,
 }
 
+/// The walk cycle after moving at `speed` for `dt`: a full turn of the
+/// phase is one stride, whose length grows with speed (`balance::STRIDE`).
+pub fn stride(phase: i32, speed: i32, dt: i32, base: i32, grow: i32) -> i32 {
+    let length = base + fx::mul(grow, speed.max(0));
+    (phase + fx::div(fx::mul(speed.max(0), dt), length.max(ONE / 10))) & (fx::TURN - 1)
+}
+
 #[derive(Debug, Clone)]
 pub struct Player {
     pub pos: V3,
@@ -222,7 +229,7 @@ impl Player {
         self.pos = p;
         // footsteps
         if moving && !self.airborne {
-            self.walk_phase = (self.walk_phase + fx::mul(speed, dt) * 4) & (fx::TURN - 1);
+            self.walk_phase = stride(self.walk_phase, speed, dt, STRIDE, STRIDE_GROW);
             self.step_t -= dt;
             if self.step_t <= 0 {
                 self.step_t = STEP_EVERY;
@@ -352,6 +359,35 @@ mod tests {
     use crate::fx::int;
     use crate::mission::parse_uniforms;
     use crate::world;
+
+    /// Strides a second at a speed: one second of movement in 60 ticks.
+    fn cadence(speed: i32) -> i32 {
+        let mut phase = 0;
+        let mut turns = 0;
+        for _ in 0..60 {
+            let next = stride(phase, speed, ONE / 60, STRIDE, STRIDE_GROW);
+            if next < phase {
+                turns += 1;
+            }
+            phase = next;
+        }
+        turns * 100 + phase * 100 / fx::TURN
+    }
+
+    #[test]
+    fn legs_stride_at_a_human_pace_walking_running_and_sprinting() {
+        // people take about one stride (two steps) a second walking and
+        // about one and a half running; never the blur of four a metre
+        for (speed, lo, hi) in [(WALK, 70, 120), (SPEED_RUN, 110, 160), (SPEED_SPRINT, 120, 170)] {
+            let c = cadence(speed);
+            assert!(
+                c >= lo && c <= hi,
+                "{} m/s: {} strides a second (×100)",
+                speed / 65536,
+                c
+            );
+        }
+    }
 
     fn w() -> World {
         world::build(&Palette::parse(include_str!("../../../data/palette.json")).unwrap())

@@ -1872,7 +1872,7 @@ fn ride(r: &mut Run, wish: V3, gallop: bool, dt: i32, sounds: &mut Vec<&'static 
         r.mule.yaw = (r.mule.yaw + d.clamp(-max, max)) & (fx::TURN - 1);
     }
     if moving {
-        r.mule.walk = (r.mule.walk + fx::mul(speed, dt) * 3) & (fx::TURN - 1);
+        r.mule.walk = player::stride(r.mule.walk, speed, dt, MULE_STRIDE, MULE_STRIDE_GROW);
     }
     r.p.pos = p.add(v3(0, RIDE_SEAT, 0));
     r.p.vel = V3::ZERO;
@@ -1898,10 +1898,10 @@ enum Tie {
     Nothing,
     /// take the soldier off the mule's back
     Untie,
-    /// take Vance off
-    VanceOff,
-    /// put Vance on
-    Vance,
+    /// take Grace off
+    GraceOff,
+    /// put Grace on
+    Grace,
     /// tie this soldier on: lying near you, on your shoulder or in your hold
     Soldier(usize),
     /// someone to put on, but the mule already carries someone
@@ -1915,17 +1915,17 @@ fn tie_target(r: &Run) -> Tie {
     let mule_near = r.mule.pos.dist(me) < MULE_TIE_REACH;
     let free_hands = r.hold.is_none() && r.carry.is_none();
     if r.prisoner == Prisoner::OnMule && mule_near && free_hands {
-        return Tie::VanceOff;
+        return Tie::GraceOff;
     }
     if r.mule.load.is_some() && mule_near && free_hands {
         return Tie::Untie;
     }
     let who = match (r.hold, r.carry) {
         (Some((i, _)), _) => Tie::Soldier(i),
-        (_, Some(Carry::Commando)) => Tie::Vance,
+        (_, Some(Carry::Commando)) => Tie::Grace,
         (_, Some(Carry::Soldier(i))) if r.soldiers[i].life != Life::Dead => Tie::Soldier(i),
         (_, Some(Carry::Soldier(_))) => Tie::Nothing,
-        _ if r.prisoner == Prisoner::Free && r.prisoner_at.dist(me) < REACH * 2 => Tie::Vance,
+        _ if r.prisoner == Prisoner::Free && r.prisoner_at.dist(me) < REACH * 2 => Tie::Grace,
         _ => nearest_soldier(r, me, REACH * 2, |s| lying(s) && s.life != Life::Dead)
             .map_or(Tie::Nothing, Tie::Soldier),
     };
@@ -1950,7 +1950,7 @@ fn tie(r: &mut Run, sounds: &mut Vec<&'static str>, toasts: &mut Vec<String>) {
             sounds.push("whistle");
             toasts.push("@mule_coming".into());
         }
-        Tie::VanceOff => {
+        Tie::GraceOff => {
             r.prisoner = Prisoner::Free;
             let at = r.mule.pos.add(right_of(r.mule.yaw).scale(int(1)));
             r.prisoner_at = v3(at.x, r.world.ground(at, RADIUS / 2, r.mule.pos.y + STEP), at.z);
@@ -1965,13 +1965,13 @@ fn tie(r: &mut Run, sounds: &mut Vec<&'static str>, toasts: &mut Vec<String>) {
                 sounds.push("drop");
             }
         }
-        Tie::Vance => {
+        Tie::Grace => {
             if r.carry == Some(Carry::Commando) {
                 r.carry = None;
             }
             r.prisoner = Prisoner::OnMule;
             r.mule.mode = MuleMode::Follow;
-            toasts.push("@vance_on_mule".into());
+            toasts.push("@grace_on_mule".into());
             sounds.push("tie");
         }
         Tie::Soldier(i) => {
@@ -2317,7 +2317,7 @@ fn mule_tick(
         let max = fx::mul(deg(400), dt);
         r.mule.yaw = (r.mule.yaw + d.clamp(-max, max)) & (fx::TURN - 1);
     }
-    r.mule.walk = (r.mule.walk + fx::mul(speed, dt) * 3) & (fx::TURN - 1);
+    r.mule.walk = player::stride(r.mule.walk, speed, dt, MULE_STRIDE, MULE_STRIDE_GROW);
 }
 
 // --- balloons, tracers ---------------------------------------------------------------------
@@ -2370,6 +2370,9 @@ fn world_tick(
         if let Who::Soldier(i) = b.who {
             let rec = recruit(r, i, recruits, names);
             toasts.push(format!("@recruited:{}", rec.name));
+            // he wanted out: the first thing he does is thank you
+            let k = r.rng.range(0, recruits.thanks.len() as i32 - 1) as usize;
+            r.said = Some((recruits.thanks[k].replace("{}", &rec.name), SAID_TIME * 2));
             r.recruited.push(rec);
             sounds.push("recruit");
         } else {
@@ -2871,8 +2874,8 @@ impl Game {
             _ if r.riding || r.p.locker.is_some() => "",
             Tie::Nothing | Tie::Full => "",
             Tie::Untie => "untie",
-            Tie::VanceOff => "untie_vance",
-            Tie::Vance => "tie_vance",
+            Tie::GraceOff => "untie_grace",
+            Tie::Grace => "tie_grace",
             Tie::Soldier(_) => "tie_ready",
             Tie::Far => "tie_far",
         });
@@ -2931,7 +2934,7 @@ impl Game {
             "said_key": said_key,
             "said_text": said_text,
             "mule_loaded": r.mule.load.is_some(),
-            "mule_vance": r.prisoner == Prisoner::OnMule,
+            "mule_grace": r.prisoner == Prisoner::OnMule,
             "riding": r.riding,
             "mule_mode": match r.mule.mode { MuleMode::Follow => "follow", MuleMode::Come => "come", MuleMode::Charge(_) => "charge" },
         });
@@ -3613,7 +3616,7 @@ mod tests {
     }
 
     #[test]
-    fn vance_goes_on_the_mule_and_rides_out_with_you() {
+    fn grace_goes_on_the_mule_and_rides_out_with_you() {
         let mut g = start(0);
         only(&mut g, &[]);
         let mut t = 0;
@@ -3733,6 +3736,11 @@ mod tests {
         press(&mut g, FULTON, &mut t);
         run(&mut g, 0, 60 * 4, &mut t);
         assert_eq!(r(&mut g).recruited.len(), 1);
+        // and he thanks Big Chum by his new codename
+        let name = r(&mut g).recruited[0].name.clone();
+        let said = r(&mut g).said.clone().map(|s| s.0).unwrap_or_default();
+        assert!(said.contains("Big Chum") || said.contains("Thank you"), "{said}");
+        assert!(said.contains(&name), "{said}");
         // finish the mission so the roster is kept
         r(&mut g).prisoner = Prisoner::Gone;
         let lz = g.missions[0].lz;
