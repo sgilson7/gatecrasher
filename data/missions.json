@@ -1,0 +1,149 @@
+{
+  "_about": "The three missions. All use the same zone (crates/core/src/world.rs); each has its own soldiers, objective and landing zone. Positions are metres [x, z] (north is -z); a route point's third number is seconds to wait there; `facing` is degrees (0 north, 90 west, 180 south, 270 east). `perch` stands a soldier on a named place (a tower deck) instead of a route. `knows` names the intel he gives up when interrogated; a soldier who knows nothing marks the soldiers near him instead. The player knows only `objective` at the start: everything in `intel` must be got out of someone.",
+  "missions": [
+    {
+      "id": "caged_bird",
+      "kind": "rescue",
+      "name": "Caged Bird",
+      "brief": "A commando of ours, Corporal Dale Vance, was taken alive on the coast road three days ago. He is somewhere inside the outpost. We don't know where they're keeping him. Get in, find him, get him out, and get yourself to the landing zone.",
+      "objective": "Rescue Corporal Vance",
+      "objective_unknown": "Where he is held: unknown. Interrogate soldiers.",
+      "target_name": "Cpl. Dale Vance",
+      "start": "start_west",
+      "start_facing": 270,
+      "lz": "lz_west",
+      "target_place": "cage",
+      "seed": 1101,
+      "intel": [
+        {
+          "id": "where",
+          "text": "\"The prisoner? They moved him out of the cells. He's in a cage in the back room of the warehouse.\"",
+          "reveals": "target"
+        },
+        {
+          "id": "cells",
+          "text": "\"The cell block's empty now. They only left a guard there for show.\"",
+          "reveals": "none"
+        },
+        {
+          "id": "drain",
+          "text": "\"There's a storm drain under the west wall. Nobody guards it; you'd have to crawl.\"",
+          "reveals": "drain"
+        }
+      ],
+      "soldiers": [
+        { "route": [[-3, 74, 0]], "facing": 180 },
+        { "route": [[3, 74, 0]], "facing": 180, "knows": ["cells"] },
+        { "route": [[0, 60, 4], [0, 12, 3], [0, -38, 5], [0, 12, 3]] },
+        { "route": [[-44, 44, 4], [-40, 28, 3], [-28, 44, 4]], "knows": ["cells"] },
+        { "route": [[-56, 46, 0]], "facing": 90 },
+        { "route": [[-58, -8, 5], [-40, -8, 3], [-40, -36, 4], [-58, -36, 3]], "knows": ["drain"] },
+        { "route": [[-14, -42, 0]], "facing": 180 },
+        { "route": [[42, -2, 5], [30, 8, 3], [56, 6, 4]] },
+        { "route": [[40, -18, 4], [48, -28, 5], [32, -28, 3]], "knows": ["where"] },
+        { "route": [[50, -14, 0]], "facing": 180, "elite": true },
+        { "perch": "tower_ne", "facing": 225 },
+        { "perch": "tower_sw", "facing": 45 },
+        { "route": [[-74, -20, 5], [-74, 28, 5]], "knows": ["where", "drain"] },
+        { "route": [[-20, 28, 4], [-42, 6, 3], [-8, 8, 3]] },
+        { "route": [[33, -50, 0]], "facing": 0 }
+      ]
+    },
+    {
+      "id": "red_beret",
+      "kind": "eliminate",
+      "name": "Red Beret",
+      "brief": "Colonel Ivo Varga runs this outpost and signed the order that took Vance. He wears an officer's red beret, and so do the two officers serving under him. We have no photograph. Find out which beret is his, take him out or bring him home on a balloon, and make for the beach.",
+      "objective": "Eliminate Colonel Varga",
+      "objective_unknown": "Which officer is Varga: unknown. Interrogate soldiers.",
+      "target_name": "Col. Ivo Varga",
+      "start": "start_ridge",
+      "start_facing": 180,
+      "lz": "lz_beach",
+      "seed": 2202,
+      "intel": [
+        {
+          "id": "who",
+          "text": "\"The Colonel? He walks his rounds himself: his office, the warehouse, the tanks. Dark glasses under the beret.\"",
+          "reveals": "target"
+        },
+        {
+          "id": "office",
+          "text": "\"Varga keeps his office in the east room of HQ. He goes back there between rounds.\"",
+          "reveals": "hq_office"
+        },
+        {
+          "id": "lenses",
+          "text": "\"The men in black wear new glasses. They say they can see your doors in the air.\"",
+          "reveals": "elites"
+        }
+      ],
+      "soldiers": [
+        { "route": [[2, -58, 8], [12, -56, 1], [24, -40, 2], [40, 0, 5], [46, 34, 6], [24, -40, 2], [12, -56, 1]], "officer": true, "target": true },
+        { "route": [[-58, -22, 7], [-58, -8, 2], [-30, -8, 6], [-58, -8, 2]], "officer": true, "knows": ["office"] },
+        { "route": [[-56, 44, 6], [-40, 40, 3], [-20, 60, 6], [-40, 40, 3]], "officer": true },
+        { "route": [[-3, 74, 0]], "facing": 180 },
+        { "route": [[3, 74, 0]], "facing": 180 },
+        { "route": [[-10, 2, 4], [20, 2, 4], [20, 24, 4], [-10, 24, 4]], "elite": true, "knows": ["lenses"] },
+        { "route": [[10, -38, 3], [-20, -38, 3], [-20, -72, 4], [10, -72, 4]], "elite": true },
+        { "route": [[-14, -42, 0]], "facing": 180, "knows": ["who"] },
+        { "route": [[33, -50, 0]], "facing": 0, "knows": ["who", "office"] },
+        { "perch": "tower_ne", "facing": 225 },
+        { "perch": "tower_sw", "facing": 45 },
+        { "route": [[40, -18, 4], [48, -28, 5], [32, -28, 3]] },
+        { "route": [[60, 20, 4], [74, 40, 4], [60, 60, 4]], "knows": ["who"] },
+        { "route": [[-60, -40, 4], [-30, -40, 4]] },
+        { "route": [[-74, -20, 5], [-74, 28, 5]] }
+      ]
+    },
+    {
+      "id": "gate_lens",
+      "kind": "recover",
+      "name": "Gate Lens",
+      "brief": "The outpost's engineers built the lenses that let their elite troops see our portals. The prototype and its notes are in a black case somewhere on the site. Recover the case before it ships, then get out over the ridge. Their elites are out in force: they can see your portals.",
+      "objective": "Recover the Gate Lens case",
+      "objective_unknown": "Where the case is: unknown. Interrogate soldiers.",
+      "target_name": "Gate Lens case",
+      "start": "start_south",
+      "start_facing": 0,
+      "lz": "lz_ridge",
+      "target_place": "comms_top",
+      "seed": 3303,
+      "intel": [
+        {
+          "id": "where",
+          "text": "\"The black case? They swung it up onto the comms tower deck with the crane, then took the crane away. No stairs up there.\"",
+          "reveals": "target"
+        },
+        {
+          "id": "ridge",
+          "text": "\"From the ridge you can see straight onto the hut on top of the comms tower.\"",
+          "reveals": "ridge"
+        },
+        {
+          "id": "lenses",
+          "text": "\"The men in black wear the lenses. Keep your doors out of their sight.\"",
+          "reveals": "elites"
+        }
+      ],
+      "soldiers": [
+        { "route": [[-3, 74, 0]], "facing": 180, "elite": true },
+        { "route": [[3, 74, 0]], "facing": 180 },
+        { "route": [[0, 60, 4], [0, 12, 3], [0, -38, 5], [0, 12, 3]], "elite": true, "knows": ["lenses"] },
+        { "route": [[33, -50, 4], [44, -46, 4], [20, -46, 4]], "elite": true, "knows": ["where"] },
+        { "route": [[42, -2, 5], [30, 8, 3], [56, 6, 4]], "knows": ["where"] },
+        { "route": [[40, -18, 4], [48, -28, 5], [32, -28, 3]] },
+        { "route": [[56, -20, 0]], "facing": 90 },
+        { "route": [[-14, -42, 0]], "facing": 180 },
+        { "route": [[2, -58, 6], [-14, -56, 6]], "knows": ["ridge"] },
+        { "perch": "tower_ne", "facing": 225, "elite": true },
+        { "perch": "tower_sw", "facing": 45 },
+        { "route": [[-58, -8, 5], [-40, -8, 3], [-40, -36, 4], [-58, -36, 3]] },
+        { "route": [[46, 34, 4], [60, 46, 4], [30, 46, 4]], "knows": ["ridge"] },
+        { "route": [[-20, 28, 4], [-42, 6, 3], [-8, 8, 3]] },
+        { "route": [[-44, 44, 4], [-40, 28, 3], [-28, 44, 4]] },
+        { "route": [[-60, -76, 4], [20, -76, 4]], "elite": true }
+      ]
+    }
+  ]
+}

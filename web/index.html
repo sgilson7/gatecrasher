@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#efc46a">
+  <!-- Reference default. connect-src 'self' keeps fetches on this origin;
+       'wasm-unsafe-eval' lets the page compile its own WebAssembly module;
+       form-action 'none' blocks form posts. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Gatecrasher</title>
+  <meta name="description" content="A third-person stealth game in the browser: sneak through an outpost with two portals, a silenced pistol and the Memphis Mule, across three missions in the same zone.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-ready="false" data-mode="loading">
+  <canvas id="view"></canvas>
+
+  <!-- play -->
+  <div id="hud" hidden>
+    <div id="markers"></div>
+    <div id="detect"></div>
+    <div id="reticle"></div>
+    <div id="reflex" hidden><span data-copy="reflex"></span></div>
+    <div id="top-left">
+      <div class="mission" id="h-mission"></div>
+      <div class="clock" id="h-time"></div>
+      <div id="phase" hidden><span id="h-phase"></span> <span id="h-phase-secs"></span></div>
+    </div>
+    <div id="top-right">
+      <div class="camo-label" data-copy="camo"></div>
+      <div class="camo" id="h-camo"></div>
+      <div class="uniform" id="h-uniform"></div>
+    </div>
+    <div id="objective">
+      <div class="obj" id="h-objective"></div>
+      <div class="note" id="h-note"></div>
+      <div class="hint" data-copy="intel_hint"></div>
+    </div>
+    <div id="bottom-left">
+      <div class="stance" id="h-stance"></div>
+      <div class="row"><span data-copy="cloak"></span><div class="bar"><div id="h-battery"></div></div></div>
+      <div class="row"><span data-copy="fulton"></span> <span id="h-fultons"></span></div>
+      <div class="row"><span data-copy="mule"></span> <span id="h-mule"></span></div>
+    </div>
+    <div id="bottom-right">
+      <div class="weapon" data-copy="pistol"></div>
+      <div class="rounds"><span id="h-rounds"></span> <span id="h-ammo"></span></div>
+      <div class="portals"><span class="pa" id="h-pa" data-copy="portal_a"></span> <span class="pb" id="h-pb" data-copy="portal_b"></span></div>
+    </div>
+    <div id="prompts"></div>
+    <div id="said" hidden></div>
+    <div id="toasts"></div>
+    <div id="intel" hidden>
+      <h3 data-copy="intel_heading"></h3>
+      <ul id="intel-list"></ul>
+    </div>
+    <div id="engage" hidden><button id="engage-btn" class="big" data-copy="click_to_play"></button></div>
+  </div>
+
+  <!-- the title -->
+  <div id="title" class="overlay" hidden>
+    <img class="art" src="art/title.png" alt="">
+    <div class="side">
+      <h1 data-copy="title"></h1>
+      <p class="subtitle" data-copy="subtitle"></p>
+      <h2 data-copy="missions_heading"></h2>
+      <div id="mission-list"></div>
+      <button id="to-graceland" data-copy="graceland_button"></button>
+      <details class="about">
+        <summary data-copy="controls_heading"></summary>
+        <table class="controls"></table>
+      </details>
+      <p class="credit" data-copy="credit"></p>
+      <div id="build" class="build"></div>
+    </div>
+  </div>
+
+  <!-- the briefing -->
+  <div id="brief" class="overlay" hidden>
+    <div class="side wide">
+      <img class="card" id="b-art" alt="">
+      <h2 id="b-name"></h2>
+      <p class="brief" id="b-brief"></p>
+      <p class="objective"><span data-copy="objective_label"></span>: <span id="b-objective"></span></p>
+      <h3 data-copy="uniform_heading"></h3>
+      <p class="small" data-copy="uniform_note"></p>
+      <table id="uniforms"></table>
+      <button id="deploy" class="big" data-copy="deploy"></button>
+      <button id="brief-back" data-copy="back"></button>
+    </div>
+  </div>
+
+  <!-- paused -->
+  <div id="paused" class="overlay center" hidden>
+    <div class="panel">
+      <h2 data-copy="paused"></h2>
+      <button id="resume" class="big" data-copy="resume"></button>
+      <button id="restart" data-copy="restart"></button>
+      <button id="abort" data-copy="abort"></button>
+      <table class="controls"></table>
+    </div>
+  </div>
+
+  <!-- failed -->
+  <div id="failed" class="overlay" hidden>
+    <img class="art" src="art/failed.png" alt="">
+    <div class="side">
+      <div class="stamp" data-copy="failed_title"></div>
+      <p class="line" id="f-cause"></p>
+      <p class="line" id="f-mission"></p>
+      <button id="retry" class="big" data-copy="retry"></button>
+      <button id="failed-title" data-copy="to_title"></button>
+    </div>
+  </div>
+
+  <!-- complete -->
+  <div id="complete" class="overlay" hidden>
+    <img class="art" src="art/complete.png" alt="">
+    <div class="side">
+      <div class="stamp good" data-copy="complete_title"></div>
+      <p class="line" id="c-mission"></p>
+      <div class="rank"><span data-copy="rank"></span> <span id="c-rank"></span></div>
+      <table class="stats">
+        <tr><td data-copy="time"></td><td id="c-time"></td></tr>
+        <tr><td data-copy="alerts"></td><td id="c-alerts"></td></tr>
+        <tr><td data-copy="kills"></td><td id="c-kills"></td></tr>
+        <tr><td data-copy="intel_found"></td><td id="c-intel"></td></tr>
+      </table>
+      <h3 data-copy="recruits"></h3>
+      <ul id="c-recruits"></ul>
+      <button id="complete-title" class="big" data-copy="to_title"></button>
+      <button id="complete-graceland" data-copy="graceland_button"></button>
+    </div>
+  </div>
+
+  <!-- Graceland -->
+  <div id="graceland" class="overlay" hidden>
+    <img class="art" src="art/graceland.png" alt="">
+    <div class="side">
+      <h2 data-copy="graceland_title"></h2>
+      <p class="small" data-copy="graceland_lead"></p>
+      <p><span data-copy="staff"></span>: <span id="g-staff"></span></p>
+      <table id="g-units"></table>
+      <ul id="g-roster"></ul>
+      <button id="graceland-back" class="big" data-copy="back"></button>
+    </div>
+  </div>
+
+  <div id="message"></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

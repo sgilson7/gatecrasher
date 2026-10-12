@@ -1,0 +1,9 @@
+{
+  "_about": "The uniforms (MGS3's camouflage). `base` and `blotch` are palette-free colours for the sneaking suit's pattern. Each ground number is what that uniform adds to the camo index, in percent, standing on that ground: high where the pattern matches the ground, low or negative where it stands out.",
+  "uniforms": [
+    { "id": "woodland", "name": "Woodland", "base": "#6E8A4E", "blotch": "#3F5A35", "grass": 45, "dirt": 10, "concrete": -15, "floor": -5, "sand": -10 },
+    { "id": "splitter", "name": "Splitter", "base": "#B7AFA0", "blotch": "#7D7A72", "grass": -10, "dirt": 5, "concrete": 45, "floor": 25, "sand": 5 },
+    { "id": "tiger_sand", "name": "Tiger Sand", "base": "#D2B080", "blotch": "#8C6A44", "grass": -5, "dirt": 40, "concrete": 10, "floor": 5, "sand": 50 },
+    { "id": "shadow", "name": "Shadow", "base": "#3A3346", "blotch": "#241F2E", "grass": 0, "dirt": -5, "concrete": -10, "floor": 40, "sand": -25 }
+  ]
+}

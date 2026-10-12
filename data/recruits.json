@@ -1,0 +1,7 @@
+{
+  "_about": "Codenames for soldiers extracted to Graceland, made of a first and a second word chosen by the core's seeded generator; the three units, in order Intel, R&D, Support; and the grades from lowest to highest.",
+  "first": ["Velvet", "Rusty", "Hound", "Blue", "Copper", "Lonesome", "Gator", "Pawn", "Thunder", "Juke", "Dusty", "Neon", "Cotton", "River", "Mojo", "Static", "Honky", "Delta", "Mason", "Satin"],
+  "second": ["Heron", "Possum", "Catfish", "Boll Weevil", "Mockingbird", "Hornet", "Armadillo", "Bobcat", "Crawdad", "Whippoorwill", "Skunk", "Jackrabbit", "Coyote", "Turtle", "Magpie", "Mudpuppy"],
+  "units": ["Intel", "R&D", "Support"],
+  "grades": ["E", "D", "C", "B", "A", "S"]
+}

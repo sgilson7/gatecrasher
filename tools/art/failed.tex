@@ -1,0 +1,520 @@
+\documentclass[tikz,border=0pt]{standalone}
+\usepackage{xcolor}
+% Palette: Sam_Comm_final.png by eye (as Pursuer's art.py), and Gatecrasher's own.
+\definecolor{ink}{HTML}{3B2340}
+\definecolor{sky}{HTML}{EFC46A}
+\definecolor{skyhi}{HTML}{F5DA92}
+\definecolor{skylow}{HTML}{E9B060}
+\definecolor{cloud}{HTML}{F2D58A}
+\definecolor{wallA}{HTML}{E88A73}
+\definecolor{wallB}{HTML}{EE9F7E}
+\definecolor{wallC}{HTML}{E47A7E}
+\definecolor{wallD}{HTML}{F0B07E}
+\definecolor{wallE}{HTML}{D9765F}
+\definecolor{wallF}{HTML}{E99A8A}
+\definecolor{greenA}{HTML}{8DBB7E}
+\definecolor{greenB}{HTML}{6FA77A}
+\definecolor{greenC}{HTML}{A9C97F}
+\definecolor{greenD}{HTML}{5E9C6A}
+\definecolor{window}{HTML}{F6E7A0}
+\definecolor{windark}{HTML}{8C5A64}
+\definecolor{metal}{HTML}{8D9A93}
+\definecolor{metaldark}{HTML}{5E6B66}
+\definecolor{wood}{HTML}{B9835A}
+\definecolor{paving}{HTML}{E2BD8C}
+\definecolor{ground}{HTML}{D3A77D}
+\definecolor{stone}{HTML}{E7C9A0}
+\definecolor{paper}{HTML}{F6E7C4}
+\definecolor{cardboard}{HTML}{C9A06A}
+\definecolor{cardboarddark}{HTML}{A47C4C}
+\definecolor{red}{HTML}{B3262E}
+\definecolor{eyewhite}{HTML}{FBF4E4}
+\definecolor{skin}{HTML}{E8B07C}
+\definecolor{skinB}{HTML}{C98B5E}
+\definecolor{skinC}{HTML}{F2C9A0}
+\definecolor{hairdark}{HTML}{2A1E33}
+\definecolor{hairred}{HTML}{A8553A}
+\definecolor{leather}{HTML}{33293D}
+\definecolor{chrome}{HTML}{C9D3CF}
+\definecolor{chromedark}{HTML}{7F8C88}
+\definecolor{glass}{HTML}{A9D4CB}
+\definecolor{lamp}{HTML}{FFE6A3}
+\definecolor{smoke}{HTML}{E8D3AE}
+\definecolor{shingle}{HTML}{C9604F}
+\definecolor{gold}{HTML}{F2B53A}
+\definecolor{portalblue}{HTML}{2FA8E8}
+\definecolor{portalbluehi}{HTML}{A6DDF5}
+\definecolor{portalorange}{HTML}{F2812E}
+\definecolor{portalorangehi}{HTML}{F9C891}
+\definecolor{olive}{HTML}{7A8450}
+\definecolor{olivedark}{HTML}{5C6539}
+\definecolor{khaki}{HTML}{C2A66E}
+\definecolor{khakidark}{HTML}{9E8350}
+\definecolor{mule}{HTML}{9A6A44}
+\definecolor{muledark}{HTML}{6B4730}
+\definecolor{mulelight}{HTML}{C99A6E}
+\definecolor{bandana}{HTML}{C8343A}
+\definecolor{suit}{HTML}{56704F}
+\definecolor{camoA}{HTML}{8DA867}
+\definecolor{camoB}{HTML}{3B5240}
+\definecolor{lens}{HTML}{8EF0C6}
+\definecolor{lenshi}{HTML}{E2FFF2}
+\definecolor{sea}{HTML}{5FB3B0}
+\definecolor{seahi}{HTML}{8FCFC0}
+\definecolor{seadark}{HTML}{3F8F92}
+\definecolor{concrete}{HTML}{E6C29A}
+\definecolor{concretedark}{HTML}{C9A07A}
+\definecolor{heli}{HTML}{4F8F86}
+\definecolor{helidark}{HTML}{3A6C66}
+\definecolor{duskA}{HTML}{7A5272}
+\definecolor{duskB}{HTML}{B06A78}
+\definecolor{duskC}{HTML}{DE8E72}
+\definecolor{dirt}{HTML}{C08A68}
+\definecolor{dirtdark}{HTML}{A87256}
+\definecolor{beam}{HTML}{FFF3BE}
+\definecolor{sunA}{HTML}{F3B86A}
+\definecolor{sunB}{HTML}{EE9268}
+\definecolor{sunC}{HTML}{E57766}
+\definecolor{sundisc}{HTML}{FBE3A0}
+\definecolor{seadusk}{HTML}{6F9E9C}
+\definecolor{balloon}{HTML}{F8F0DE}
+\definecolor{hay}{HTML}{E9C46A}
+\definecolor{haydark}{HTML}{C99B45}
+\definecolor{barn}{HTML}{C9604F}
+\definecolor{trim}{HTML}{F6E7C4}
+\begin{document}
+\begin{tikzpicture}
+\useasboundingbox (0,0) rectangle (32,18);
+\clip (0,0) rectangle (32,18);
+\fill[duskC] (0,0) rectangle (32,18);
+\fill[duskB] (0,9) rectangle (32,18);
+\fill[duskA] (0,13.5) rectangle (32,18);
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=duskB] (3,15) circle (0.55);
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=duskB] (3.55,15.25) circle (0.7);
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=duskB] (4.2,15.35) circle (0.8);
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=duskB] (4.85,15.15) circle (0.6);
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=duskB] (5.35,14.95) circle (0.45);
+\fill[duskB] (3,14.85) rectangle (5.35,15.05);
+\draw[ink, line width=1.1pt, line cap=round, line join=round] (2.75,14.85) -- (5.6,14.85);
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=duskB] (8.5,12) circle (0.385);
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=duskB] (8.885,12.175) circle (0.49);
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=duskB] (9.34,12.245) circle (0.56);
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=duskB] (9.795,12.105) circle (0.42);
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=duskB] (10.145,11.965) circle (0.315);
+\fill[duskB] (8.5,11.895) rectangle (10.145,12.035);
+\draw[ink, line width=1.1pt, line cap=round, line join=round] (8.325,11.895) -- (10.32,11.895);
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=duskB] (17.1,16) circle (0.495);
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=duskB] (17.595,16.225) circle (0.63);
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=duskB] (18.18,16.315) circle (0.72);
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=duskB] (18.765,16.135) circle (0.54);
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=duskB] (19.215,15.955) circle (0.405);
+\fill[duskB] (17.1,15.865) rectangle (19.215,16.045);
+\draw[ink, line width=1.1pt, line cap=round, line join=round] (16.875,15.865) -- (19.44,15.865);
+\filldraw[draw=ink, line width=1.1pt, fill=dirt] (-0.5,-0.5) rectangle (32.5,5.6);
+\draw[ink, line width=3.1pt, line cap=round, line join=round] (28.8,8.6) -- (31.064,9.714);
+\draw[metal, line width=0.9pt, line cap=round, line join=round] (28.8,8.6) -- (31.064,9.714);
+\draw[ink, line width=3.1pt, line cap=round, line join=round] (31.2,8.6) -- (28.936,9.714);
+\draw[metal, line width=0.9pt, line cap=round, line join=round] (31.2,8.6) -- (28.936,9.714);
+\draw[ink, line width=3.4pt, line cap=round, line join=round] (28.936,9.714) -- (31.064,9.714);
+\draw[metal, line width=1.2pt, line cap=round, line join=round] (28.936,9.714) -- (31.064,9.714);
+\draw[ink, line width=3.1pt, line cap=round, line join=round] (28.936,9.714) -- (30.929,10.829);
+\draw[metal, line width=0.9pt, line cap=round, line join=round] (28.936,9.714) -- (30.929,10.829);
+\draw[ink, line width=3.1pt, line cap=round, line join=round] (31.064,9.714) -- (29.071,10.829);
+\draw[metal, line width=0.9pt, line cap=round, line join=round] (31.064,9.714) -- (29.071,10.829);
+\draw[ink, line width=3.4pt, line cap=round, line join=round] (29.071,10.829) -- (30.929,10.829);
+\draw[metal, line width=1.2pt, line cap=round, line join=round] (29.071,10.829) -- (30.929,10.829);
+\draw[ink, line width=3.1pt, line cap=round, line join=round] (29.071,10.829) -- (30.793,11.943);
+\draw[metal, line width=0.9pt, line cap=round, line join=round] (29.071,10.829) -- (30.793,11.943);
+\draw[ink, line width=3.1pt, line cap=round, line join=round] (30.929,10.829) -- (29.207,11.943);
+\draw[metal, line width=0.9pt, line cap=round, line join=round] (30.929,10.829) -- (29.207,11.943);
+\draw[ink, line width=3.4pt, line cap=round, line join=round] (29.207,11.943) -- (30.793,11.943);
+\draw[metal, line width=1.2pt, line cap=round, line join=round] (29.207,11.943) -- (30.793,11.943);
+\draw[ink, line width=3.1pt, line cap=round, line join=round] (29.207,11.943) -- (30.657,13.057);
+\draw[metal, line width=0.9pt, line cap=round, line join=round] (29.207,11.943) -- (30.657,13.057);
+\draw[ink, line width=3.1pt, line cap=round, line join=round] (30.793,11.943) -- (29.343,13.057);
+\draw[metal, line width=0.9pt, line cap=round, line join=round] (30.793,11.943) -- (29.343,13.057);
+\draw[ink, line width=3.4pt, line cap=round, line join=round] (29.343,13.057) -- (30.657,13.057);
+\draw[metal, line width=1.2pt, line cap=round, line join=round] (29.343,13.057) -- (30.657,13.057);
+\draw[ink, line width=3.1pt, line cap=round, line join=round] (29.343,13.057) -- (30.521,14.171);
+\draw[metal, line width=0.9pt, line cap=round, line join=round] (29.343,13.057) -- (30.521,14.171);
+\draw[ink, line width=3.1pt, line cap=round, line join=round] (30.657,13.057) -- (29.479,14.171);
+\draw[metal, line width=0.9pt, line cap=round, line join=round] (30.657,13.057) -- (29.479,14.171);
+\draw[ink, line width=3.4pt, line cap=round, line join=round] (29.479,14.171) -- (30.521,14.171);
+\draw[metal, line width=1.2pt, line cap=round, line join=round] (29.479,14.171) -- (30.521,14.171);
+\draw[ink, line width=3.1pt, line cap=round, line join=round] (29.479,14.171) -- (30.386,15.286);
+\draw[metal, line width=0.9pt, line cap=round, line join=round] (29.479,14.171) -- (30.386,15.286);
+\draw[ink, line width=3.1pt, line cap=round, line join=round] (30.521,14.171) -- (29.614,15.286);
+\draw[metal, line width=0.9pt, line cap=round, line join=round] (30.521,14.171) -- (29.614,15.286);
+\draw[ink, line width=3.4pt, line cap=round, line join=round] (29.614,15.286) -- (30.386,15.286);
+\draw[metal, line width=1.2pt, line cap=round, line join=round] (29.614,15.286) -- (30.386,15.286);
+\draw[ink, line width=3.1pt, line cap=round, line join=round] (29.614,15.286) -- (30.25,16.4);
+\draw[metal, line width=0.9pt, line cap=round, line join=round] (29.614,15.286) -- (30.25,16.4);
+\draw[ink, line width=3.1pt, line cap=round, line join=round] (30.386,15.286) -- (29.75,16.4);
+\draw[metal, line width=0.9pt, line cap=round, line join=round] (30.386,15.286) -- (29.75,16.4);
+\draw[ink, line width=3.4pt, line cap=round, line join=round] (29.75,16.4) -- (30.25,16.4);
+\draw[metal, line width=1.2pt, line cap=round, line join=round] (29.75,16.4) -- (30.25,16.4);
+\draw[ink, line width=4.8pt, line cap=round, line join=round] (28.8,8.6) -- (28.936,9.714);
+\draw[paper, line width=2.6pt, line cap=round, line join=round] (28.8,8.6) -- (28.936,9.714);
+\draw[ink, line width=4.8pt, line cap=round, line join=round] (28.936,9.714) -- (29.071,10.829);
+\draw[bandana, line width=2.6pt, line cap=round, line join=round] (28.936,9.714) -- (29.071,10.829);
+\draw[ink, line width=4.8pt, line cap=round, line join=round] (29.071,10.829) -- (29.207,11.943);
+\draw[paper, line width=2.6pt, line cap=round, line join=round] (29.071,10.829) -- (29.207,11.943);
+\draw[ink, line width=4.8pt, line cap=round, line join=round] (29.207,11.943) -- (29.343,13.057);
+\draw[bandana, line width=2.6pt, line cap=round, line join=round] (29.207,11.943) -- (29.343,13.057);
+\draw[ink, line width=4.8pt, line cap=round, line join=round] (29.343,13.057) -- (29.479,14.171);
+\draw[paper, line width=2.6pt, line cap=round, line join=round] (29.343,13.057) -- (29.479,14.171);
+\draw[ink, line width=4.8pt, line cap=round, line join=round] (29.479,14.171) -- (29.614,15.286);
+\draw[bandana, line width=2.6pt, line cap=round, line join=round] (29.479,14.171) -- (29.614,15.286);
+\draw[ink, line width=4.8pt, line cap=round, line join=round] (29.614,15.286) -- (29.75,16.4);
+\draw[paper, line width=2.6pt, line cap=round, line join=round] (29.614,15.286) -- (29.75,16.4);
+\draw[ink, line width=4.8pt, line cap=round, line join=round] (31.2,8.6) -- (31.064,9.714);
+\draw[paper, line width=2.6pt, line cap=round, line join=round] (31.2,8.6) -- (31.064,9.714);
+\draw[ink, line width=4.8pt, line cap=round, line join=round] (31.064,9.714) -- (30.929,10.829);
+\draw[bandana, line width=2.6pt, line cap=round, line join=round] (31.064,9.714) -- (30.929,10.829);
+\draw[ink, line width=4.8pt, line cap=round, line join=round] (30.929,10.829) -- (30.793,11.943);
+\draw[paper, line width=2.6pt, line cap=round, line join=round] (30.929,10.829) -- (30.793,11.943);
+\draw[ink, line width=4.8pt, line cap=round, line join=round] (30.793,11.943) -- (30.657,13.057);
+\draw[bandana, line width=2.6pt, line cap=round, line join=round] (30.793,11.943) -- (30.657,13.057);
+\draw[ink, line width=4.8pt, line cap=round, line join=round] (30.657,13.057) -- (30.521,14.171);
+\draw[paper, line width=2.6pt, line cap=round, line join=round] (30.657,13.057) -- (30.521,14.171);
+\draw[ink, line width=4.8pt, line cap=round, line join=round] (30.521,14.171) -- (30.386,15.286);
+\draw[bandana, line width=2.6pt, line cap=round, line join=round] (30.521,14.171) -- (30.386,15.286);
+\draw[ink, line width=4.8pt, line cap=round, line join=round] (30.386,15.286) -- (30.25,16.4);
+\draw[paper, line width=2.6pt, line cap=round, line join=round] (30.386,15.286) -- (30.25,16.4);
+\draw[ink, line width=1.6pt, line cap=round, line join=round] (30,16.4) -- (30,18.6);
+\draw[ink, line width=1pt, line cap=round, line join=round] (29.7,17) -- (30.3,17);
+\draw[ink, line width=1pt, line cap=round, line join=round] (29.75,17.5) -- (30.25,17.5);
+\draw[ink, line width=1pt, line cap=round, line join=round] (29.8,18) -- (30.2,18);
+\filldraw[draw=ink, line width=0.77pt, line join=round, fill=bandana] (30,18.7) circle (0.14);
+\draw[ink, line width=1.2pt, line cap=round, line join=round] (30.459,14.684) -- (30.909,14.684);
+\filldraw[draw=ink, line width=0.99pt, line join=round, fill=paper] plot[smooth cycle, tension=0.55] coordinates {(31.169,14.684) (31.164,14.826) (31.148,14.959) (31.122,15.073) (31.089,15.16) (31.05,15.215) (31.009,15.234) (30.968,15.215) (30.929,15.16) (30.896,15.073) (30.87,14.959) (30.854,14.826) (30.849,14.684) (30.854,14.542) (30.87,14.409) (30.896,14.295) (30.929,14.208) (30.968,14.153) (31.009,14.134) (31.05,14.153) (31.089,14.208) (31.122,14.295) (31.148,14.409) (31.164,14.542)};
+\draw[ink, line width=0.9pt, line cap=round, line join=round] (31.029,14.684) -- (31.359,14.684);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=metaldark] (31.379,14.684) circle (0.05);
+\draw[ink, line width=1.2pt, line cap=round, line join=round] (29.389,13.436) -- (28.939,13.436);
+\filldraw[draw=ink, line width=0.99pt, line join=round, fill=paper] plot[smooth cycle, tension=0.55] coordinates {(28.679,13.436) (28.684,13.552) (28.7,13.661) (28.726,13.754) (28.759,13.826) (28.798,13.871) (28.839,13.886) (28.88,13.871) (28.919,13.826) (28.952,13.754) (28.978,13.661) (28.994,13.552) (28.999,13.436) (28.994,13.32) (28.978,13.211) (28.952,13.118) (28.919,13.046) (28.88,13.001) (28.839,12.986) (28.798,13.001) (28.759,13.046) (28.726,13.118) (28.7,13.211) (28.684,13.32)};
+\draw[ink, line width=0.9pt, line cap=round, line join=round] (28.819,13.436) -- (28.489,13.436);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=metaldark] (28.469,13.436) circle (0.05);
+\draw[ink, line width=1.2pt, line cap=round, line join=round] (29.655,15.62) -- (29.205,15.62);
+\filldraw[draw=ink, line width=0.99pt, line join=round, fill=paper] plot[smooth cycle, tension=0.55] coordinates {(28.945,15.62) (28.95,15.711) (28.966,15.795) (28.992,15.867) (29.025,15.923) (29.064,15.958) (29.105,15.97) (29.146,15.958) (29.185,15.923) (29.218,15.867) (29.244,15.795) (29.26,15.711) (29.265,15.62) (29.26,15.529) (29.244,15.445) (29.218,15.373) (29.185,15.317) (29.146,15.282) (29.105,15.27) (29.064,15.282) (29.025,15.317) (28.992,15.373) (28.966,15.445) (28.95,15.529)};
+\draw[ink, line width=0.9pt, line cap=round, line join=round] (29.085,15.62) -- (28.755,15.62);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=metaldark] (28.735,15.62) circle (0.05);
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=concrete] (11.8,5.6) -- (32.6,5.6) -- (32.6,8.6) -- (11.8,8.6) -- cycle;
+\draw[ink, line width=1pt, line cap=round, line join=round] (13.6,5.6) -- (13.6,8.6);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (13.35,6.2) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (13.85,6.2) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (13.35,8) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (13.85,8) circle (0.05);
+\filldraw[draw=ink, line width=0.55pt, line join=round, fill=concretedark] (14.184,8.35) -- (14.534,8.35) -- (14.434,7.697) -- (14.284,7.925) -- cycle;
+\draw[ink, line width=1pt, line cap=round, line join=round] (15.4,5.6) -- (15.4,8.6);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (15.15,6.2) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (15.65,6.2) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (15.15,8) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (15.65,8) circle (0.05);
+\draw[ink, line width=1pt, line cap=round, line join=round] (17.2,5.6) -- (17.2,8.6);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (16.95,6.2) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (17.45,6.2) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (16.95,8) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (17.45,8) circle (0.05);
+\filldraw[draw=ink, line width=0.55pt, line join=round, fill=concretedark] (17.777,8.35) -- (18.127,8.35) -- (18.027,7.61) -- (17.877,7.294) -- cycle;
+\draw[ink, line width=1pt, line cap=round, line join=round] (19,5.6) -- (19,8.6);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (18.75,6.2) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (19.25,6.2) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (18.75,8) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (19.25,8) circle (0.05);
+\draw[ink, line width=1pt, line cap=round, line join=round] (20.8,5.6) -- (20.8,8.6);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (20.55,6.2) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (21.05,6.2) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (20.55,8) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (21.05,8) circle (0.05);
+\filldraw[draw=ink, line width=0.55pt, line join=round, fill=concretedark] (21.472,8.35) -- (21.822,8.35) -- (21.722,7.539) -- (21.572,7.532) -- cycle;
+\draw[ink, line width=1pt, line cap=round, line join=round] (22.6,5.6) -- (22.6,8.6);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (22.35,6.2) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (22.85,6.2) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (22.35,8) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (22.85,8) circle (0.05);
+\draw[ink, line width=1pt, line cap=round, line join=round] (24.4,5.6) -- (24.4,8.6);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (24.15,6.2) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (24.65,6.2) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (24.15,8) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (24.65,8) circle (0.05);
+\filldraw[draw=ink, line width=0.55pt, line join=round, fill=concretedark] (24.799,8.35) -- (25.149,8.35) -- (25.049,7.245) -- (24.899,7.894) -- cycle;
+\draw[ink, line width=1pt, line cap=round, line join=round] (26.2,5.6) -- (26.2,8.6);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (25.95,6.2) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (26.45,6.2) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (25.95,8) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (26.45,8) circle (0.05);
+\filldraw[draw=ink, line width=0.55pt, line join=round, fill=concretedark] (26.687,8.35) -- (27.037,8.35) -- (26.937,7.659) -- (26.787,7.728) -- cycle;
+\draw[ink, line width=1pt, line cap=round, line join=round] (28,5.6) -- (28,8.6);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (27.75,6.2) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (28.25,6.2) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (27.75,8) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (28.25,8) circle (0.05);
+\draw[ink, line width=1pt, line cap=round, line join=round] (29.8,5.6) -- (29.8,8.6);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (29.55,6.2) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (30.05,6.2) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (29.55,8) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (30.05,8) circle (0.05);
+\draw[ink, line width=1pt, line cap=round, line join=round] (31.6,5.6) -- (31.6,8.6);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (31.35,6.2) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (31.85,6.2) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (31.35,8) circle (0.05);
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=concretedark] (31.85,8) circle (0.05);
+\filldraw[draw=ink, line width=0.55pt, line join=round, fill=concretedark] (31.937,8.35) -- (32.287,8.35) -- (32.187,7.615) -- (32.037,7.208) -- cycle;
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=concretedark] (11.7,8.6) -- (32.7,8.6) -- (32.7,8.9) -- (11.7,8.9) -- cycle;
+\draw[metaldark, line width=1.6pt, line cap=round, line join=round] (12,8.9) -- (12,9.45) -- (11.8,9.6);
+\draw[metaldark, line width=1.6pt, line cap=round, line join=round] (13.7,8.9) -- (13.7,9.45) -- (13.5,9.6);
+\draw[metaldark, line width=1.6pt, line cap=round, line join=round] (15.4,8.9) -- (15.4,9.45) -- (15.2,9.6);
+\draw[metaldark, line width=1.6pt, line cap=round, line join=round] (17.1,8.9) -- (17.1,9.45) -- (16.9,9.6);
+\draw[metaldark, line width=1.6pt, line cap=round, line join=round] (18.8,8.9) -- (18.8,9.45) -- (18.6,9.6);
+\draw[metaldark, line width=1.6pt, line cap=round, line join=round] (20.5,8.9) -- (20.5,9.45) -- (20.3,9.6);
+\draw[metaldark, line width=1.6pt, line cap=round, line join=round] (22.2,8.9) -- (22.2,9.45) -- (22,9.6);
+\draw[metaldark, line width=1.6pt, line cap=round, line join=round] (23.9,8.9) -- (23.9,9.45) -- (23.7,9.6);
+\draw[metaldark, line width=1.6pt, line cap=round, line join=round] (25.6,8.9) -- (25.6,9.45) -- (25.4,9.6);
+\draw[metaldark, line width=1.6pt, line cap=round, line join=round] (27.3,8.9) -- (27.3,9.45) -- (27.1,9.6);
+\draw[metaldark, line width=1.6pt, line cap=round, line join=round] (29,8.9) -- (29,9.45) -- (28.8,9.6);
+\draw[metaldark, line width=1.6pt, line cap=round, line join=round] (30.7,8.9) -- (30.7,9.45) -- (30.5,9.6);
+\draw[metaldark, line width=1.6pt, line cap=round, line join=round] (32.4,8.9) -- (32.4,9.45) -- (32.2,9.6);
+\draw[metaldark, line width=0.9pt] (12.03,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (12.27,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (12.51,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (12.75,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (12.99,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (13.23,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (13.47,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (13.71,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (13.95,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (14.19,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (14.43,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (14.67,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (14.91,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (15.15,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (15.39,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (15.63,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (15.87,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (16.11,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (16.35,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (16.59,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (16.83,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (17.07,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (17.31,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (17.55,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (17.79,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (18.03,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (18.27,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (18.51,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (18.75,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (18.99,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (19.23,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (19.47,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (19.71,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (19.95,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (20.19,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (20.43,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (20.67,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (20.91,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (21.15,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (21.39,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (21.63,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (21.87,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (22.11,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (22.35,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (22.59,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (22.83,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (23.07,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (23.31,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (23.55,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (23.79,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (24.03,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (24.27,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (24.51,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (24.75,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (24.99,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (25.23,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (25.47,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (25.71,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (25.95,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (26.19,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (26.43,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (26.67,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (26.91,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (27.15,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (27.39,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (27.63,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (27.87,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (28.11,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (28.35,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (28.59,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (28.83,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (29.07,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (29.31,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (29.55,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (29.79,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (30.03,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (30.27,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (30.51,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (30.75,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (30.99,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (31.23,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (31.47,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (31.71,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (31.95,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (32.19,9.3) ellipse (0.2 and 0.28);
+\draw[metaldark, line width=0.9pt] (32.43,9.3) ellipse (0.2 and 0.28);
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=concretedark] (11.4,5.4) -- (12.2,5.4) -- (12.2,9.2) -- (11.4,9.2) -- cycle;
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=concrete] (19.4,5.4) -- (22.8,5.4) -- (22.6,12.8) -- (19.6,12.8) -- cycle;
+\draw[concretedark, line width=0.7pt, line cap=round, line join=round] (19.43,6.9) -- (22.77,6.9);
+\draw[concretedark, line width=0.7pt, line cap=round, line join=round] (19.46,8.4) -- (22.74,8.4);
+\draw[concretedark, line width=0.7pt, line cap=round, line join=round] (19.49,9.9) -- (22.71,9.9);
+\draw[concretedark, line width=0.7pt, line cap=round, line join=round] (19.52,11.4) -- (22.68,11.4);
+\filldraw[draw=ink, line width=0.88pt, line join=round, fill=windark] (20.9,11) -- (21.3,11) -- (21.3,12) -- (20.9,12) -- cycle;
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=metaldark] (20.8,5.4) -- (21.5,5.4) -- (21.5,7) -- (20.8,7) -- cycle;
+\filldraw[draw=ink, line width=0.44pt, line join=round, fill=chrome] (21.35,6.2) circle (0.06);
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=concretedark] (18.9,12.8) -- (23.3,12.8) -- (23.3,13.2) -- (18.9,13.2) -- cycle;
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=windark] (19.2,13.2) -- (23,13.2) -- (23,16) -- (19.2,16) -- cycle;
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=concrete] (19.2,13.2) -- (23,13.2) -- (23,14.1) -- (19.2,14.1) -- cycle;
+\filldraw[draw=ink, line width=0.99pt, line join=round, fill=concrete] (19.2,14.1) -- (19.45,14.1) -- (19.45,16) -- (19.2,16) -- cycle;
+\filldraw[draw=ink, line width=0.99pt, line join=round, fill=concrete] (22.75,14.1) -- (23,14.1) -- (23,16) -- (22.75,16) -- cycle;
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=wallE] (18.85,16) -- (23.35,16) -- (23.35,16.5) -- (18.85,16.5) -- cycle;
+\draw[ink, line width=1.2pt, line cap=round, line join=round] (22.9,16.5) -- (22.9,18);
+\draw[ink, line width=0.8pt, line cap=round, line join=round] (22.7,17) -- (23.1,17);
+\draw[ink, line width=0.8pt, line cap=round, line join=round] (22.7,17.5) -- (23.1,17.5);
+\filldraw[draw=ink, line width=0.66pt, line join=round, fill=bandana] (22.9,18.05) circle (0.1);
+\filldraw[draw=ink, line width=0.77pt, line join=round, fill=metaldark] (22.1,16.5) -- (22.3,16.5) -- (22.3,16.7) -- (22.1,16.7) -- cycle;
+\filldraw[draw=ink, line width=0.99pt, line join=round, fill=beam, fill opacity=0.38, draw opacity=0.55] (21.85,16.75) -- (12.9,1.75) -- (18.3,0.65) -- (23.7,1.75) -- (22.55,16.75) -- cycle;
+\filldraw[draw=ink, line width=0.88pt, line join=round, fill=beam, fill opacity=0.55, draw opacity=0.6] plot[smooth cycle, tension=0.55] coordinates {(23.7,1.9) (23.516,2.224) (22.977,2.525) (22.118,2.784) (21,2.983) (19.698,3.107) (18.3,3.15) (16.902,3.107) (15.6,2.983) (14.482,2.784) (13.623,2.525) (13.084,2.224) (12.9,1.9) (13.084,1.576) (13.623,1.275) (14.482,1.016) (15.6,0.817) (16.902,0.693) (18.3,0.65) (19.698,0.693) (21,0.817) (22.118,1.016) (22.977,1.275) (23.516,1.576)};
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=metal] (22.121,17.623) -- (21.66,16.965) -- (22.34,16.342) -- (22.779,17.243) -- cycle;
+\filldraw[draw=ink, line width=0.88pt, line join=round, fill=lamp] plot[smooth cycle, tension=0.55] coordinates {(21.92,16.515) (22.03,16.457) (22.137,16.411) (22.234,16.381) (22.315,16.368) (22.373,16.373) (22.406,16.396) (22.41,16.436) (22.385,16.489) (22.333,16.552) (22.258,16.621) (22.165,16.691) (22.06,16.758) (21.95,16.815) (21.843,16.861) (21.746,16.892) (21.665,16.905) (21.607,16.899) (21.574,16.876) (21.57,16.837) (21.595,16.783) (21.647,16.72) (21.722,16.651) (21.815,16.581)};
+\draw[dirtdark, line width=1.1pt, line cap=round, line join=round] plot[smooth, tension=0.6] coordinates {(12,4.6) (16,4.1) (22,4.4)};
+\draw[dirtdark, line width=1.1pt, line cap=round, line join=round] plot[smooth, tension=0.6] coordinates {(13,3.3) (17.5,2.95)};
+\draw[dirtdark, line width=1.1pt, line cap=round, line join=round] plot[smooth, tension=0.6] coordinates {(24.5,3.8) (28.5,3.1)};
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=khaki] plot[smooth cycle, tension=0.3] coordinates {(25.399,5.078) (25.292,4.126) (25.244,3.329) (24.788,3.343) (24.788,4.154) (24.825,5.122)};
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=leather] plot[smooth cycle, tension=0.25] coordinates {(25.28,3) (24.656,3) (24.704,3.24) (24.8,3.48) (25.232,3.48)};
+\draw[khakidark, line width=0.96pt, line cap=round, line join=round] (25.04,4.5) -- (25.04,4.02);
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=khaki] plot[smooth cycle, tension=0.3] coordinates {(25.975,5.122) (26.012,4.154) (26.012,3.343) (25.556,3.329) (25.508,4.126) (25.401,5.078)};
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=leather] plot[smooth cycle, tension=0.25] coordinates {(25.52,3) (26.144,3) (26.096,3.24) (26,3.48) (25.568,3.48)};
+\draw[khakidark, line width=0.96pt, line cap=round, line join=round] (25.76,4.5) -- (25.76,4.02);
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=olive] (24.776,4.944) -- (26.024,4.944) -- (26.12,6.456) -- (24.68,6.456) -- cycle;
+\filldraw[draw=ink, line width=0.88pt, line join=round, fill=leather] (24.752,4.92) -- (26.048,4.92) -- (26.048,5.136) -- (24.752,5.136) -- cycle;
+\filldraw[draw=ink, line width=0.66pt, line join=round, fill=chromedark] (25.28,4.92) -- (25.52,4.92) -- (25.52,5.136) -- (25.28,5.136) -- cycle;
+\filldraw[draw=ink, line width=0.77pt, line join=round, fill=olive] (25.232,5.76) -- (24.872,5.76) -- (24.872,6.12) -- (25.232,6.12) -- cycle;
+\draw[ink, line width=0.72pt, line cap=round, line join=round] (25.232,6) -- (24.872,6);
+\filldraw[draw=ink, line width=0.77pt, line join=round, fill=olive] (25.568,5.76) -- (25.928,5.76) -- (25.928,6.12) -- (25.568,6.12) -- cycle;
+\draw[ink, line width=0.72pt, line cap=round, line join=round] (25.568,6) -- (25.928,6);
+\filldraw[draw=ink, line width=0.77pt, line join=round, fill=skin] (25.16,6.456) -- (25.4,6.12) -- (25.64,6.456) -- cycle;
+\draw[ink, line width=0.84pt, line cap=round, line join=round] (25.4,6.12) -- (25.4,5.16);
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=olive] plot[smooth cycle, tension=0.3] coordinates {(24.903,6.221) (24.709,5.643) (25.059,5.669) (25.021,5.371) (24.411,5.517) (24.553,6.307)};
+\filldraw[draw=ink, line width=0.88pt, line join=round, fill=skin] (25.04,5.52) circle (0.18);
+\filldraw[draw=ink, line width=0.88pt, line join=round, fill=wood] (24.21,4.984) -- (24.719,5.454) -- (24.604,5.637) -- (24.084,5.185) -- cycle;
+\filldraw[draw=ink, line width=0.88pt, line join=round, fill=leather] (24.73,5.436) -- (25.435,5.876) -- (25.309,6.078) -- (24.604,5.637) -- cycle;
+\filldraw[draw=ink, line width=0.88pt, line join=round, fill=leather] (25.041,5.63) -- (25.225,5.745) -- (25.486,5.449) -- (25.332,5.328) -- cycle;
+\filldraw[draw=ink, line width=0.88pt, line join=round, fill=olivedark] (25.321,5.856) -- (25.779,6.142) -- (25.687,6.289) -- (25.229,6.002) -- cycle;
+\filldraw[draw=ink, line width=0.77pt, line join=round, fill=hairdark] (25.75,6.188) -- (26.071,6.388) -- (26.036,6.443) -- (25.716,6.243) -- cycle;
+\filldraw[draw=ink, line width=0.77pt, line join=round, fill=hairdark] (24.851,5.792) -- (25.08,5.935) -- (25.023,6.026) -- (24.794,5.883) -- cycle;
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=olive] plot[smooth cycle, tension=0.3] coordinates {(26.246,6.311) (26.342,5.514) (25.714,5.954) (25.926,6.166) (26.138,5.766) (25.898,6.217)};
+\filldraw[draw=ink, line width=0.88pt, line join=round, fill=skin] (25.82,6.06) circle (0.18);
+\filldraw[draw=ink, line width=0.77pt, line join=round, fill=skin] (25.244,6.384) -- (25.556,6.384) -- (25.556,6.576) -- (25.244,6.576) -- cycle;
+\filldraw[draw=ink, line width=0.77pt, line join=round, fill=skin] (25.028,6.84) circle (0.096);
+\filldraw[draw=ink, line width=0.77pt, line join=round, fill=skin] (25.772,6.84) circle (0.096);
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=skin] plot[smooth cycle, tension=0.55] coordinates {(25.76,6.864) (25.748,6.976) (25.712,7.08) (25.655,7.169) (25.58,7.238) (25.493,7.281) (25.4,7.296) (25.307,7.281) (25.22,7.238) (25.145,7.169) (25.088,7.08) (25.052,6.976) (25.04,6.864) (25.052,6.752) (25.088,6.648) (25.145,6.559) (25.22,6.49) (25.307,6.447) (25.4,6.432) (25.493,6.447) (25.58,6.49) (25.655,6.559) (25.712,6.648) (25.748,6.752)};
+\filldraw[draw=ink, line width=0.33pt, line join=round, fill=ink] (25.256,6.9) circle (0.042);
+\filldraw[draw=ink, line width=0.33pt, line join=round, fill=ink] (25.544,6.9) circle (0.042);
+\draw[ink, line width=1.08pt, line cap=round, line join=round] plot[smooth, tension=0.6] coordinates {(25.28,6.648) (25.4,6.6) (25.52,6.648)};
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=olive] plot[smooth cycle, tension=0.45] coordinates {(24.896,6.96) (24.968,7.296) (25.4,7.488) (25.832,7.296) (25.904,6.96) (25.976,6.912) (24.824,6.912)};
+\draw[olivedark, line width=0.96pt, line cap=round, line join=round] (25.1,7.2) -- (25.46,7.344);
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=lamp] (25.4,9.55) -- (25.19,9.252) -- (24.845,9.37) -- (24.85,9.005) -- (24.501,8.897) -- (24.72,8.605) -- (24.501,8.313) -- (24.85,8.205) -- (24.845,7.84) -- (25.19,7.958) -- (25.4,7.66) -- (25.61,7.958) -- (25.955,7.84) -- (25.95,8.205) -- (26.299,8.313) -- (26.08,8.605) -- (26.299,8.897) -- (25.95,9.005) -- (25.955,9.37) -- (25.61,9.252) -- cycle;
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=bandana] (25.184,9.325) -- (25.616,9.325) -- (25.499,8.308) -- (25.301,8.308) -- cycle;
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=bandana] (25.4,8.038) circle (0.144);
+\draw[ink, line width=1.62pt, line cap=round, line join=round] (26.379,9.061) -- (26.705,9.214);
+\draw[ink, line width=1.62pt, line cap=round, line join=round] (26.019,9.49) -- (26.226,9.785);
+\draw[ink, line width=1.62pt, line cap=round, line join=round] (24.781,9.49) -- (24.574,9.785);
+\draw[ink, line width=1.62pt, line cap=round, line join=round] (24.421,9.061) -- (24.095,9.214);
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=cardboard] (14.807,2.721) -- (13.242,3.053) -- (13.003,1.928) -- (14.568,1.596) -- cycle;
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=stone] (14.568,1.596) -- (13.003,1.928) -- (12.656,1.644) -- (14.222,1.312) -- cycle;
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=cardboarddark] (13.242,3.053) -- (12.896,2.769) -- (12.656,1.644) -- (13.003,1.928) -- cycle;
+\filldraw[draw=ink, line width=0.66pt, line join=round, fill=paper] (14.018,2.242) -- (13.768,2.295) -- (13.66,1.789) -- (13.911,1.735) -- cycle;
+\filldraw[draw=ink, line width=0.66pt, line join=round, fill=paper] (13.911,1.735) -- (13.66,1.789) -- (13.314,1.504) -- (13.564,1.451) -- cycle;
+\draw[ink, line width=0.8pt, line cap=round, line join=round] (14.56,2.479) -- (14.278,2.539);
+\filldraw[draw=ink, line width=0.66pt, line join=round, fill=cardboarddark] (13.669,2.751) -- (13.418,2.804) -- (13.491,2.53) -- cycle;
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=camoB] plot[smooth cycle, tension=0.3] coordinates {(15.766,1.431) (14.8,1.733) (13.816,1.543) (13.714,2.027) (14.81,2.279) (15.924,2.061)};
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=leather] plot[smooth cycle, tension=0.3] coordinates {(13.83,1.46) (13.245,1.525) (13.18,2.136) (13.7,2.175)};
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=camoB] plot[smooth cycle, tension=0.3] coordinates {(16.98,1.645) (16.532,1.458) (16.98,1.496) (16.92,1.164) (16.198,1.41) (16.79,1.925)};
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=suit] plot[smooth cycle, tension=0.3] coordinates {(15.795,1.252) (14.62,1.252) (13.576,1.252) (13.564,1.772) (14.6,1.824) (15.765,1.928)};
+\filldraw[draw=ink, line width=0.605pt, line join=round, fill=camoA] plot[smooth cycle, tension=0.5] coordinates {(14.164,1.597) (14.004,1.636) (13.9,1.555) (13.927,1.457) (14.06,1.425) (14.146,1.481)};
+\filldraw[draw=ink, line width=0.605pt, line join=round, fill=camoA] plot[smooth cycle, tension=0.5] coordinates {(14.194,1.659) (14.21,1.566) (14.317,1.527) (14.424,1.598) (14.374,1.692) (14.244,1.702)};
+\filldraw[draw=ink, line width=0.605pt, line join=round, fill=camoA] plot[smooth cycle, tension=0.5] coordinates {(14.319,1.436) (14.415,1.421) (14.549,1.471) (14.47,1.571) (14.367,1.615) (14.248,1.519)};
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=leather] plot[smooth cycle, tension=0.3] coordinates {(13.635,1.226) (12.985,1.265) (12.92,1.85) (13.544,1.824)};
+\filldraw[draw=ink, line width=0.99pt, line join=round, fill=metal] (15.573,2.156) -- (17.323,2.278) -- (17.287,2.792) -- (15.537,2.67) -- cycle;
+\filldraw[draw=ink, line width=0.88pt, line join=round, fill=chromedark] (15.985,2.126) -- (16.919,2.192) -- (16.875,2.822) -- (15.941,2.756) -- cycle;
+\filldraw[draw=ink, line width=0.88pt, line join=round, fill=portalblue] (15.473,2.407) circle (0.281);
+\filldraw[draw=ink, line width=0.66pt, line join=round, fill=portalbluehi] (15.473,2.407) circle (0.129);
+\filldraw[draw=ink, line width=0.88pt, line join=round, fill=portalorange] (17.387,2.541) circle (0.281);
+\filldraw[draw=ink, line width=0.66pt, line join=round, fill=portalorangehi] (17.387,2.541) circle (0.129);
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=suit] plot[smooth cycle, tension=0.3] coordinates {(15.546,2.095) (16.406,2.252) (17.21,2.266) (17.21,1.226) (16.454,1.24) (15.624,1.241)};
+\filldraw[draw=ink, line width=0.605pt, line join=round, fill=camoA] plot[smooth cycle, tension=0.5] coordinates {(15.58,1.735) (15.721,1.641) (15.882,1.656) (15.992,1.784) (15.853,1.91) (15.65,1.839)};
+\filldraw[draw=ink, line width=0.605pt, line join=round, fill=camoA] plot[smooth cycle, tension=0.5] coordinates {(16.939,1.955) (16.786,2.055) (16.573,1.971) (16.665,1.816) (16.783,1.749) (16.919,1.797)};
+\filldraw[draw=ink, line width=0.605pt, line join=round, fill=camoA] plot[smooth cycle, tension=0.5] coordinates {(15.883,1.799) (15.738,1.784) (15.625,1.719) (15.702,1.585) (15.835,1.583) (15.909,1.675)};
+\filldraw[draw=ink, line width=0.605pt, line join=round, fill=camoA] plot[smooth cycle, tension=0.5] coordinates {(17.103,1.802) (16.892,1.851) (16.824,1.73) (16.857,1.611) (17.02,1.602) (17.183,1.687)};
+\filldraw[draw=ink, line width=0.66pt, line join=round, fill=leather] plot[smooth cycle, tension=0.3] coordinates {(17.085,2.182) (15.915,2.078) (15.905,2.194) (17.075,2.298)};
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=suit] plot[smooth cycle, tension=0.3] coordinates {(17.134,2.051) (18.284,1.71) (19.309,1.563) (19.271,1.253) (18.216,1.366) (17.026,1.649)};
+\filldraw[draw=ink, line width=0.605pt, line join=round, fill=camoA] plot[smooth cycle, tension=0.5] coordinates {(18.672,1.411) (18.762,1.432) (18.801,1.472) (18.745,1.527) (18.655,1.518) (18.643,1.466)};
+\filldraw[draw=ink, line width=0.605pt, line join=round, fill=camoB] plot[smooth cycle, tension=0.5] coordinates {(17.522,1.712) (17.571,1.766) (17.492,1.809) (17.404,1.804) (17.391,1.741) (17.441,1.7)};
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=leather] plot[smooth cycle, tension=0.4] coordinates {(19.225,1.226) (19.706,1.252) (19.758,1.59) (19.29,1.668)};
+\filldraw[draw=ink, line width=0.88pt, line join=round, fill=suit] (17.132,1.525) -- (17.678,1.525) -- (17.678,1.889) -- (17.132,1.889) -- cycle;
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=skin] (17.99,1.72) circle (0.468);
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=hairdark] plot[smooth cycle, tension=0.45] coordinates {(17.513,1.463) (17.499,1.86) (17.709,2.165) (18.084,2.225) (18.388,2.01) (18.247,1.917) (18.013,1.884) (17.873,1.673) (17.779,1.392)};
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=hairdark] (17.499,2.01) circle (0.197);
+\filldraw[draw=ink, line width=0.77pt, line join=round, fill=greenD] plot[smooth cycle, tension=0.3] coordinates {(17.531,1.976) (18.083,2.108) (18.441,1.988) (18.401,1.873) (18.085,1.987) (17.56,1.857)};
+\filldraw[draw=ink, line width=0.77pt, line join=round, fill=greenD] plot[smooth cycle, tension=0.3] coordinates {(17.55,1.879) (17.305,1.721) (17.271,1.766) (17.494,1.954)};
+\filldraw[draw=ink, line width=0.88pt, line join=round, fill=leather] (20.879,1.195) -- (20.67,1.279) -- (20.908,1.669) -- (21.131,1.552) -- cycle;
+\filldraw[draw=ink, line width=0.88pt, line join=round, fill=metaldark] (20.972,1.158) -- (20.23,1.457) -- (20.15,1.26) -- (20.892,0.961) -- cycle;
+\filldraw[draw=ink, line width=0.88pt, line join=round, fill=hairdark] (20.221,1.434) -- (19.502,1.724) -- (19.441,1.574) -- (20.16,1.283) -- cycle;
+\draw[metal, line width=0.625pt, line cap=round, line join=round] (20.081,1.49) -- (20.021,1.34);
+\draw[metal, line width=0.625pt, line cap=round, line join=round] (19.896,1.565) -- (19.835,1.415);
+\draw[metal, line width=0.625pt, line cap=round, line join=round] (19.711,1.64) -- (19.65,1.489);
+\draw[ink, line width=1pt, line cap=round, line join=round] (20.786,1.233) -- (20.773,1.4) -- (20.624,1.298);
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=khakidark] plot[smooth cycle, tension=0.3] coordinates {(30.29,16.788) (30.348,6.807) (30.206,1.506) (28.684,1.539) (28.773,6.843) (29.293,16.812)};
+\draw[khakidark, line width=1.05pt, line cap=round, line join=round] (30.002,15.75) -- (29.876,6.825) -- (29.812,3.465);
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=khakidark] (28.553,1.575) -- (30.338,1.575) -- (30.306,2.1) -- (28.584,2.1) -- cycle;
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=leather] (28.553,0) -- (30.338,0) -- (30.306,1.68) -- (28.584,1.68) -- cycle;
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=leather] plot[smooth cycle, tension=0.25] coordinates {(28.238,0) (30.652,0) (30.6,0.473) (30.075,0.651) (28.815,0.651) (28.29,0.473)};
+\filldraw[draw=ink, line width=0.88pt, line join=round, fill=hairdark] (28.238,-0.053) -- (30.652,-0.053) -- (30.652,0.189) -- (28.238,0.189) -- cycle;
+\draw[khaki, line width=1.05pt, line cap=round, line join=round] (29.13,0.788) -- (29.76,0.913);
+\draw[khaki, line width=1.05pt, line cap=round, line join=round] (29.76,0.788) -- (29.13,0.913);
+\draw[khaki, line width=1.05pt, line cap=round, line join=round] (29.13,1.018) -- (29.76,1.144);
+\draw[khaki, line width=1.05pt, line cap=round, line join=round] (29.76,1.018) -- (29.13,1.144);
+\draw[khaki, line width=1.05pt, line cap=round, line join=round] (29.13,1.25) -- (29.76,1.376);
+\draw[khaki, line width=1.05pt, line cap=round, line join=round] (29.76,1.25) -- (29.13,1.376);
+\draw[khaki, line width=1.05pt, line cap=round, line join=round] (29.13,1.481) -- (29.76,1.607);
+\draw[khaki, line width=1.05pt, line cap=round, line join=round] (29.76,1.481) -- (29.13,1.607);
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=khaki] plot[smooth cycle, tension=0.3] coordinates {(31.834,16.81) (32.332,6.841) (32.411,1.538) (30.889,1.507) (30.758,6.809) (30.836,16.79)};
+\draw[khakidark, line width=1.05pt, line cap=round, line join=round] (31.545,15.75) -- (31.86,6.825) -- (32.017,3.465);
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=khaki] (30.758,1.575) -- (32.543,1.575) -- (32.511,2.1) -- (30.789,2.1) -- cycle;
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=leather] (30.758,0) -- (32.543,0) -- (32.511,1.68) -- (30.789,1.68) -- cycle;
+\filldraw[draw=ink, line width=1.1pt, line join=round, fill=leather] plot[smooth cycle, tension=0.25] coordinates {(30.443,0) (32.858,0) (32.805,0.473) (32.28,0.651) (31.02,0.651) (30.495,0.473)};
+\filldraw[draw=ink, line width=0.88pt, line join=round, fill=hairdark] (30.443,-0.053) -- (32.858,-0.053) -- (32.858,0.189) -- (30.443,0.189) -- cycle;
+\draw[khaki, line width=1.05pt, line cap=round, line join=round] (31.335,0.788) -- (31.965,0.913);
+\draw[khaki, line width=1.05pt, line cap=round, line join=round] (31.965,0.788) -- (31.335,0.913);
+\draw[khaki, line width=1.05pt, line cap=round, line join=round] (31.335,1.018) -- (31.965,1.144);
+\draw[khaki, line width=1.05pt, line cap=round, line join=round] (31.965,1.018) -- (31.335,1.144);
+\draw[khaki, line width=1.05pt, line cap=round, line join=round] (31.335,1.25) -- (31.965,1.376);
+\draw[khaki, line width=1.05pt, line cap=round, line join=round] (31.965,1.25) -- (31.335,1.376);
+\draw[khaki, line width=1.05pt, line cap=round, line join=round] (31.335,1.481) -- (31.965,1.607);
+\draw[khaki, line width=1.05pt, line cap=round, line join=round] (31.965,1.481) -- (31.335,1.607);
+\filldraw[draw=ink, line width=0.66pt, line join=round, fill=dirtdark] plot[smooth cycle, tension=0.55] coordinates {(21.086,3.715) (21.081,3.74) (21.064,3.764) (21.037,3.784) (21.002,3.799) (20.962,3.809) (20.918,3.812) (20.875,3.809) (20.834,3.799) (20.799,3.784) (20.773,3.764) (20.756,3.74) (20.75,3.715) (20.756,3.69) (20.773,3.667) (20.799,3.647) (20.834,3.631) (20.875,3.622) (20.918,3.618) (20.962,3.622) (21.002,3.631) (21.037,3.647) (21.064,3.667) (21.081,3.69)};
+\filldraw[draw=ink, line width=0.66pt, line join=round, fill=dirtdark] plot[smooth cycle, tension=0.55] coordinates {(25.536,1.754) (25.532,1.774) (25.522,1.792) (25.506,1.808) (25.485,1.821) (25.461,1.828) (25.435,1.831) (25.409,1.828) (25.384,1.821) (25.363,1.808) (25.347,1.792) (25.337,1.774) (25.334,1.754) (25.337,1.734) (25.347,1.716) (25.363,1.7) (25.384,1.688) (25.409,1.68) (25.435,1.677) (25.461,1.68) (25.485,1.688) (25.506,1.7) (25.522,1.716) (25.532,1.734)};
+\filldraw[draw=ink, line width=0.66pt, line join=round, fill=dirtdark] plot[smooth cycle, tension=0.55] coordinates {(23.459,0.803) (23.456,0.82) (23.447,0.836) (23.432,0.85) (23.413,0.861) (23.391,0.867) (23.367,0.87) (23.343,0.867) (23.321,0.861) (23.302,0.85) (23.288,0.836) (23.279,0.82) (23.275,0.803) (23.279,0.785) (23.288,0.769) (23.302,0.755) (23.321,0.744) (23.343,0.738) (23.367,0.735) (23.391,0.738) (23.413,0.744) (23.432,0.755) (23.447,0.769) (23.456,0.785)};
+\filldraw[draw=ink, line width=0.66pt, line join=round, fill=dirtdark] plot[smooth cycle, tension=0.55] coordinates {(21.672,1.85) (21.668,1.867) (21.659,1.883) (21.643,1.896) (21.623,1.907) (21.6,1.913) (21.575,1.915) (21.55,1.913) (21.527,1.907) (21.507,1.896) (21.492,1.883) (21.482,1.867) (21.479,1.85) (21.482,1.833) (21.492,1.817) (21.507,1.803) (21.527,1.793) (21.55,1.786) (21.575,1.784) (21.6,1.786) (21.623,1.793) (21.643,1.803) (21.659,1.817) (21.668,1.833)};
+\filldraw[draw=ink, line width=0.66pt, line join=round, fill=dirtdark] plot[smooth cycle, tension=0.55] coordinates {(16.238,1.661) (16.233,1.675) (16.22,1.688) (16.198,1.699) (16.17,1.708) (16.138,1.713) (16.103,1.715) (16.068,1.713) (16.035,1.708) (16.007,1.699) (15.986,1.688) (15.973,1.675) (15.968,1.661) (15.973,1.647) (15.986,1.634) (16.007,1.623) (16.035,1.614) (16.068,1.609) (16.103,1.607) (16.138,1.609) (16.17,1.614) (16.198,1.623) (16.22,1.634) (16.233,1.647)};
+\filldraw[draw=ink, line width=0.66pt, line join=round, fill=dirtdark] plot[smooth cycle, tension=0.55] coordinates {(23.129,2.799) (23.124,2.816) (23.11,2.832) (23.087,2.846) (23.057,2.856) (23.022,2.863) (22.985,2.865) (22.948,2.863) (22.913,2.856) (22.884,2.846) (22.861,2.832) (22.846,2.816) (22.842,2.799) (22.846,2.782) (22.861,2.766) (22.884,2.752) (22.913,2.742) (22.948,2.735) (22.985,2.733) (23.022,2.735) (23.057,2.742) (23.087,2.752) (23.11,2.766) (23.124,2.782)};
+\filldraw[draw=ink, line width=0.66pt, line join=round, fill=dirtdark] plot[smooth cycle, tension=0.55] coordinates {(15.308,3.895) (15.304,3.913) (15.295,3.93) (15.28,3.945) (15.26,3.956) (15.236,3.963) (15.212,3.965) (15.187,3.963) (15.163,3.956) (15.143,3.945) (15.128,3.93) (15.119,3.913) (15.115,3.895) (15.119,3.877) (15.128,3.86) (15.143,3.846) (15.163,3.834) (15.187,3.827) (15.212,3.825) (15.236,3.827) (15.26,3.834) (15.28,3.846) (15.295,3.86) (15.304,3.877)};
+\filldraw[draw=ink, line width=0.66pt, line join=round, fill=dirtdark] plot[smooth cycle, tension=0.55] coordinates {(13.621,0.539) (13.616,0.561) (13.601,0.582) (13.577,0.6) (13.546,0.614) (13.51,0.623) (13.471,0.626) (13.431,0.623) (13.395,0.614) (13.364,0.6) (13.34,0.582) (13.325,0.561) (13.32,0.539) (13.325,0.517) (13.34,0.496) (13.364,0.478) (13.395,0.464) (13.431,0.455) (13.471,0.452) (13.51,0.455) (13.546,0.464) (13.577,0.478) (13.601,0.496) (13.616,0.517)};
+\filldraw[draw=ink, line width=0.66pt, line join=round, fill=dirtdark] plot[smooth cycle, tension=0.55] coordinates {(22.274,1.574) (22.269,1.6) (22.252,1.624) (22.226,1.644) (22.191,1.66) (22.151,1.67) (22.107,1.673) (22.064,1.67) (22.024,1.66) (21.989,1.644) (21.963,1.624) (21.946,1.6) (21.94,1.574) (21.946,1.549) (21.963,1.525) (21.989,1.505) (22.024,1.489) (22.064,1.479) (22.107,1.476) (22.151,1.479) (22.191,1.489) (22.226,1.505) (22.252,1.525) (22.269,1.549)};
+\filldraw[draw=ink, line width=0.66pt, line join=round, fill=dirtdark] plot[smooth cycle, tension=0.55] coordinates {(15.765,0.295) (15.76,0.312) (15.748,0.328) (15.727,0.342) (15.7,0.352) (15.669,0.359) (15.636,0.361) (15.603,0.359) (15.572,0.352) (15.545,0.342) (15.525,0.328) (15.512,0.312) (15.507,0.295) (15.512,0.278) (15.525,0.262) (15.545,0.248) (15.572,0.237) (15.603,0.231) (15.636,0.228) (15.669,0.231) (15.7,0.237) (15.727,0.248) (15.748,0.262) (15.76,0.278)};
+\filldraw[draw=ink, line width=0.66pt, line join=round, fill=dirtdark] plot[smooth cycle, tension=0.55] coordinates {(22.316,4.151) (22.313,4.172) (22.303,4.193) (22.287,4.21) (22.266,4.223) (22.241,4.232) (22.215,4.235) (22.189,4.232) (22.165,4.223) (22.144,4.21) (22.128,4.193) (22.118,4.172) (22.114,4.151) (22.118,4.129) (22.128,4.109) (22.144,4.091) (22.165,4.078) (22.189,4.07) (22.215,4.067) (22.241,4.07) (22.266,4.078) (22.287,4.091) (22.303,4.109) (22.313,4.129)};
+\filldraw[draw=ink, line width=0.66pt, line join=round, fill=dirtdark] plot[smooth cycle, tension=0.55] coordinates {(15.541,4.477) (15.535,4.49) (15.518,4.502) (15.489,4.512) (15.453,4.521) (15.41,4.526) (15.364,4.527) (15.318,4.526) (15.275,4.521) (15.238,4.512) (15.21,4.502) (15.193,4.49) (15.187,4.477) (15.193,4.464) (15.21,4.451) (15.238,4.441) (15.275,4.433) (15.318,4.428) (15.364,4.426) (15.41,4.428) (15.453,4.433) (15.489,4.441) (15.518,4.451) (15.535,4.464)};
+\filldraw[draw=ink, line width=0.66pt, line join=round, fill=dirtdark] plot[smooth cycle, tension=0.55] coordinates {(14.354,2.179) (14.351,2.201) (14.341,2.221) (14.325,2.238) (14.304,2.252) (14.28,2.26) (14.254,2.263) (14.228,2.26) (14.204,2.252) (14.183,2.238) (14.168,2.221) (14.158,2.201) (14.154,2.179) (14.158,2.158) (14.168,2.137) (14.183,2.12) (14.204,2.107) (14.228,2.098) (14.254,2.095) (14.28,2.098) (14.304,2.107) (14.325,2.12) (14.341,2.137) (14.351,2.158)};
+\filldraw[draw=ink, line width=0.66pt, line join=round, fill=dirtdark] plot[smooth cycle, tension=0.55] coordinates {(13.121,0.108) (13.117,0.126) (13.106,0.142) (13.088,0.156) (13.064,0.167) (13.037,0.174) (13.008,0.176) (12.979,0.174) (12.952,0.167) (12.929,0.156) (12.911,0.142) (12.9,0.126) (12.896,0.108) (12.9,0.091) (12.911,0.074) (12.929,0.06) (12.952,0.049) (12.979,0.043) (13.008,0.04) (13.037,0.043) (13.064,0.049) (13.088,0.06) (13.106,0.074) (13.117,0.091)};
+\filldraw[draw=ink, line width=0.66pt, line join=round, fill=dirtdark] plot[smooth cycle, tension=0.55] coordinates {(13.479,1.888) (13.475,1.909) (13.461,1.928) (13.44,1.945) (13.412,1.958) (13.38,1.966) (13.346,1.969) (13.311,1.966) (13.279,1.958) (13.251,1.945) (13.23,1.928) (13.217,1.909) (13.212,1.888) (13.217,1.868) (13.23,1.848) (13.251,1.832) (13.279,1.819) (13.311,1.811) (13.346,1.808) (13.38,1.811) (13.412,1.819) (13.44,1.832) (13.461,1.848) (13.475,1.868)};
+\filldraw[draw=ink, line width=0.66pt, line join=round, fill=dirtdark] plot[smooth cycle, tension=0.55] coordinates {(17.591,4.551) (17.587,4.571) (17.576,4.589) (17.557,4.606) (17.533,4.618) (17.506,4.626) (17.476,4.628) (17.446,4.626) (17.418,4.618) (17.394,4.606) (17.376,4.589) (17.364,4.571) (17.36,4.551) (17.364,4.531) (17.376,4.512) (17.394,4.496) (17.418,4.483) (17.446,4.476) (17.476,4.473) (17.506,4.476) (17.533,4.483) (17.557,4.496) (17.576,4.512) (17.587,4.531)};
+\end{tikzpicture}
+\end{document}

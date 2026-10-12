@@ -1,0 +1,7 @@
+{
+  "_about": "How the page presents things, not rules: renderers whose names hold one of `software` draw at `software_scale` of the screen's resolution; a toast stays `toast_ms` milliseconds and at most `toast_max` show at once.",
+  "software": ["SwiftShader", "llvmpipe", "Software", "Microsoft Basic Render"],
+  "software_scale": 0.5,
+  "toast_ms": 7000,
+  "toast_max": 4
+}
