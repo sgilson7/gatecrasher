@@ -29,9 +29,10 @@ impl Game {
         missions: &str,
         uniforms: &str,
         recruits: &str,
+        talk: &str,
         saved: &str,
     ) -> Result<Game, JsValue> {
-        game::Game::new(palette, missions, uniforms, recruits, saved)
+        game::Game::new(palette, missions, uniforms, recruits, talk, saved)
             .map(|inner| Game { inner })
             .map_err(|e| JsValue::from_str(&e))
     }

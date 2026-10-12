@@ -172,11 +172,9 @@ impl Player {
         } else {
             Gait::Walk
         };
-        if self.dive > 0 {
+        let diving = self.dive > 0;
+        if diving {
             self.dive -= dt;
-            if self.dive <= 0 {
-                self.stance = Stance::Prone;
-            }
         }
         // turn the body
         let want = face.or(if moving {
@@ -225,6 +223,11 @@ impl Player {
             self.vy = 0;
             self.airborne = false;
         }
+        // a dive ends face down where she lands
+        if diving && (!self.airborne || self.dive <= 0) {
+            self.dive = 0;
+            self.stance = Stance::Prone;
+        }
         self.vel = v3(fx::div(p.x - self.pos.x, dt), 0, fx::div(p.z - self.pos.z, dt));
         self.pos = p;
         // footsteps
@@ -259,6 +262,9 @@ impl Player {
     /// Space: vault a ledge ahead if there is one, dive out of a sprint,
     /// or stand up. Returns true for a vault.
     pub fn jump(&mut self, world: &World) -> bool {
+        if self.dive > 0 {
+            return false;
+        }
         if self.airborne || self.vault.is_some() || self.boxed {
             return false;
         }
@@ -276,6 +282,7 @@ impl Player {
         }
         if self.gait == Gait::Sprint && self.stance == Stance::Stand {
             self.push = facing(self.yaw, 0).scale(DIVE_SPEED);
+            self.vy = DIVE_LIFT;
             self.dive = DIVE_TIME;
             return false;
         }

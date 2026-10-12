@@ -282,6 +282,29 @@ pub fn parse_recruits(json: &str) -> Result<Recruits, String> {
     Ok(r)
 }
 
+/// What soldiers say under interrogation (data/talk.json): one line is
+/// picked at random from the list that fits.
+#[derive(Debug, Clone, Deserialize)]
+pub struct Talk {
+    /// said before a line of intel
+    pub opener: Vec<String>,
+    pub nothing: Vec<String>,
+    pub marks: Vec<String>,
+    pub alone: Vec<String>,
+    pub again: Vec<String>,
+}
+
+pub fn parse_talk(json: &str) -> Result<Talk, String> {
+    let t: Talk = serde_json::from_str(json).map_err(|e| format!("talk.json: {e}"))?;
+    if [&t.opener, &t.nothing, &t.marks, &t.alone, &t.again]
+        .iter()
+        .any(|l| l.is_empty())
+    {
+        return Err("talk.json: every list needs at least one line".into());
+    }
+    Ok(t)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

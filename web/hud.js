@@ -59,6 +59,7 @@ export function makeHud(copy, display) {
     update(p) {
       el("h-mission").textContent = p.mission;
       el("h-time").textContent = p.time;
+      el("h-score").textContent = p.score;
       const phase = el("phase");
       phase.hidden = p.phase === "normal";
       phase.className = p.phase;

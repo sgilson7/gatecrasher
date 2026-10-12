@@ -42,9 +42,12 @@ pub const STEP: i32 = ratio(45, 100);
 /// A ledge up to this high is vaulted (Space).
 pub const VAULT_MAX: i32 = ratio(17, 10);
 pub const VAULT_TIME: i32 = ratio(45, 100);
-/// The dive from a sprint: speed and how long before you are prone.
+/// The dive from a sprint: forward speed, the upward kick that takes her
+/// off the ground (about half a metre up, half a second in the air), and the
+/// longest a dive lasts before she is prone even if she has not landed.
 pub const DIVE_SPEED: i32 = int(7);
-pub const DIVE_TIME: i32 = ratio(5, 10);
+pub const DIVE_LIFT: i32 = ratio(45, 10);
+pub const DIVE_TIME: i32 = ratio(8, 10);
 /// A fall from higher than this kills (MGS5 lets you drop a storey).
 pub const FALL_DEADLY: i32 = int(14);
 /// Mouse: angle units per CSS pixel, times 100.
@@ -167,7 +170,7 @@ pub const UNTIE_TIME: i32 = int(4);
 // --- the pistol --------------------------------------------------------------------------------
 pub const FIRE_COOLDOWN: i32 = ratio(35, 100);
 pub const PISTOL_RANGE: i32 = int(90);
-pub const TRANQ_ROUNDS: i32 = 18;
+pub const TRANQ_ROUNDS: i32 = 8;
 pub const LETHAL_ROUNDS: i32 = 21;
 pub const HEAD_RADIUS: i32 = ratio(18, 100);
 pub const BODY_RADIUS: i32 = ratio(32, 100);
@@ -232,3 +235,15 @@ pub const RIDE_SEAT: i32 = ratio(60, 100);
 pub const NOISE_TROT: i32 = int(12);
 pub const NOISE_GALLOP: i32 = int(24);
 pub const RIDE_CAMO: i32 = -60;
+
+// --- score -------------------------------------------------------------------------------------
+/// Points for a finished mission, each piece of intel, each recruit, and each
+/// second under par; taken away for each alert and, heavily, each soldier
+/// killed (the mission 2 target excepted). Whole points, not Q16.16.
+pub const SCORE_DONE: i32 = 10_000;
+pub const SCORE_INTEL: i32 = 500;
+pub const SCORE_RECRUIT: i32 = 1_000;
+pub const SCORE_PAR_SECS: i32 = 900;
+pub const SCORE_PER_SEC: i32 = 5;
+pub const SCORE_ALERT: i32 = 1_000;
+pub const SCORE_KILL: i32 = 2_500;

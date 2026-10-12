@@ -77,6 +77,8 @@ table.controls td:first-child { font-weight: 700; white-space: nowrap; }
 #top-left { position: absolute; left: 1rem; top: 1rem; }
 #top-left .mission { font-size: 1.1rem; }
 #top-left .clock { font-size: 0.9rem; opacity: 0.8; }
+#top-left .score { font-size: 0.9rem; }
+.stats tr.total td { font-weight: bold; border-top: 1px solid currentColor; }
 #phase { margin-top: 0.4rem; display: inline-block; padding: 0.2rem 0.7rem; border: 3px solid var(--ink); border-radius: 8px; font-size: 1.2rem; }
 #phase.caution, #phase.evasion { background: var(--caution); }
 #phase.combat { background: var(--danger); color: var(--paper); }

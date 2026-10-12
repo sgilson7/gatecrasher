@@ -12,7 +12,7 @@ use crate::draw::{self, Hat, Look, MuleLook, Pose};
 use crate::fx::{self, deg, int, ratio, ONE};
 use crate::geom::{facing, right_of, v3, V3};
 use crate::mesh::{self, Mesh};
-use crate::mission::{self, Kind, Mission, Recruits, Reveal, Uniform};
+use crate::mission::{self, Kind, Mission, Recruits, Reveal, Talk, Uniform};
 use crate::nav::{self, Nav};
 use crate::player::{self, Gait, Player, Stance};
 use crate::portal::{self, Portal};
@@ -162,6 +162,7 @@ pub struct Outcome {
     pub kills: i32,
     pub recruits: usize,
     pub intel: usize,
+    pub score: i32,
 }
 
 #[derive(Debug, Clone)]
@@ -208,6 +209,8 @@ struct Run {
     sniff_range: i32,
     tick: u32,
     said: Option<(String, i32)>,
+    /// what soldiers say under interrogation (data/talk.json)
+    talk: Talk,
     camo: i32,
     /// in the mule's saddle
     riding: bool,
@@ -222,6 +225,7 @@ pub struct Game {
     missions: Vec<Mission>,
     uniforms: Vec<Uniform>,
     recruits: Recruits,
+    talk: Talk,
     roster: Vec<Recruit>,
     records: BTreeMap<String, Record>,
     uniform: usize,
@@ -259,6 +263,7 @@ impl Game {
         missions: &str,
         uniforms: &str,
         recruits: &str,
+        talk: &str,
         saved: &str,
     ) -> Result<Game, String> {
         let palette = Palette::parse(palette)?;
@@ -267,6 +272,7 @@ impl Game {
         let missions = mission::parse_missions(missions, &base)?;
         let uniforms = mission::parse_uniforms(uniforms)?;
         let recruits = mission::parse_recruits(recruits)?;
+        let talk = mission::parse_talk(talk)?;
         let mut g = Game {
             palette,
             base,
@@ -274,6 +280,7 @@ impl Game {
             missions,
             uniforms,
             recruits,
+            talk,
             roster: Vec::new(),
             records: BTreeMap::new(),
             uniform: 0,
@@ -530,6 +537,7 @@ impl Game {
             sniff_range: MULE_SNIFF + int(4) * levels[0],
             tick: 0,
             said: None,
+            talk: self.talk.clone(),
             camo: 0,
             riding: false,
             hoof: 0,
@@ -620,6 +628,7 @@ impl Game {
         let dt = if r.reflex.is_some() { DT / REFLEX_SLOW } else { DT };
         r.tick = r.tick.wrapping_add(1);
         r.elapsed += dt;
+        let kills_before = r.kills;
         player_tick(
             &mut r,
             m,
@@ -643,6 +652,9 @@ impl Game {
                 &self.recruits,
                 &mut self.names,
             );
+        }
+        if r.kills > kills_before {
+            toasts.push(format!("@kill_cost:{}", (r.kills - kills_before) * SCORE_KILL));
         }
         if let Some(o) = r.outcome.clone() {
             if o.done {
@@ -959,8 +971,13 @@ fn reveal(r: &mut Run, m: &Mission, id: usize, toasts: &mut Vec<String>, sounds:
     }
 }
 
+/// One line, at random, from a list in talk.json.
+fn line(rng: &mut Rng, lines: &[String]) -> String {
+    lines[rng.range(0, lines.len() as i32 - 1) as usize].clone()
+}
+
 /// A soldier talks (or does not). On the mule he nearly always does, and
-/// tells more.
+/// tells more. What he says is one of several lines from talk.json.
 fn interrogate(
     r: &mut Run,
     m: &Mission,
@@ -972,13 +989,13 @@ fn interrogate(
     let chance = if on_mule { MULE_TALK_CHANCE } else { TALK_CHANCE };
     let s = &mut r.soldiers[i];
     if if on_mule { s.mule_talked } else { s.talked } {
-        r.said = Some(("@talk_again".into(), SAID_TIME));
+        r.said = Some((line(&mut r.rng, &r.talk.again), SAID_TIME));
         return;
     }
     s.talked = true;
     s.mule_talked |= on_mule;
     if !r.rng.chance(chance) {
-        r.said = Some(("@talk_nothing".into(), SAID_TIME));
+        r.said = Some((line(&mut r.rng, &r.talk.nothing), SAID_TIME));
         return;
     }
     let mut knows = r.soldiers[i].knows.clone();
@@ -1001,14 +1018,13 @@ fn interrogate(
         }
     }
     if knows.is_empty() {
-        r.said = Some((
-            if marked > 0 { "@talk_marks" } else { "@talk_alone" }.into(),
-            SAID_TIME,
-        ));
+        let lines = if marked > 0 { &r.talk.marks } else { &r.talk.alone };
+        r.said = Some((line(&mut r.rng, lines), SAID_TIME));
         sounds.push("intel");
         return;
     }
-    r.said = Some((m.intel[knows[0]].text.clone(), SAID_TIME));
+    let opener = line(&mut r.rng, &r.talk.opener);
+    r.said = Some((format!("{opener} {}", m.intel[knows[0]].text), SAID_TIME * 3 / 2));
     for k in knows {
         reveal(r, m, k, toasts, sounds);
     }
@@ -1495,7 +1511,21 @@ fn fail(r: &mut Run, cause: &'static str) {
         kills: r.kills,
         recruits: 0,
         intel: r.revealed.iter().filter(|x| **x).count(),
+        score: score(r, false),
     });
+}
+
+/// The score so far: what was earned, less what alerts and killing cost.
+/// The finish bonus and the time under par count only once the mission is done.
+fn score(r: &Run, done: bool) -> i32 {
+    let intel = r.revealed.iter().filter(|x| **x).count() as i32;
+    let earned = intel * SCORE_INTEL + r.recruited.len() as i32 * SCORE_RECRUIT;
+    let finish = if done {
+        SCORE_DONE + (SCORE_PAR_SECS - r.elapsed / ONE).max(0) * SCORE_PER_SEC
+    } else {
+        0
+    };
+    earned + finish - r.alerts * SCORE_ALERT - r.kills * SCORE_KILL
 }
 
 fn finish(r: &mut Run) {
@@ -1518,6 +1548,7 @@ fn finish(r: &mut Run) {
         kills: r.kills,
         recruits: r.recruited.len(),
         intel: r.revealed.iter().filter(|x| **x).count(),
+        score: score(r, true),
     });
 }
 
@@ -2492,6 +2523,9 @@ impl Game {
             } else {
                 let pose = match r.p.stance {
                     _ if r.riding => Pose::Ride { aim: r.aiming },
+                    _ if r.p.dive > 0 => Pose::Dive {
+                        t: DIVE_TIME - r.p.dive,
+                    },
                     Stance::Stand => Pose::Upright {
                         walk,
                         moving,
@@ -2949,6 +2983,7 @@ impl Game {
             "markers": markers,
             "detect": detect,
             "time": secs_text(r.elapsed / ONE),
+            "score": score(r, false),
             "said_key": said_key,
             "said_text": said_text,
             "mule_loaded": r.mule.load.is_some(),
@@ -2964,6 +2999,8 @@ impl Game {
                 "time": secs_text(o.secs),
                 "alerts": o.alerts,
                 "kills": o.kills,
+                "kill_cost": o.kills * SCORE_KILL,
+                "score": o.score,
                 "recruits": r.recruited.iter().map(|x| x.name.clone()).collect::<Vec<_>>(),
                 "intel": o.intel,
                 "intel_total": m.intel.len(),
@@ -3078,6 +3115,7 @@ mod tests {
             include_str!("../../../data/missions.json"),
             include_str!("../../../data/uniforms.json"),
             include_str!("../../../data/recruits.json"),
+            include_str!("../../../data/talk.json"),
             "",
         )
         .unwrap()
@@ -3751,6 +3789,7 @@ mod tests {
             include_str!("../../../data/missions.json"),
             include_str!("../../../data/uniforms.json"),
             include_str!("../../../data/recruits.json"),
+            include_str!("../../../data/talk.json"),
             saved,
         )
         .unwrap();
@@ -3792,6 +3831,7 @@ mod tests {
             include_str!("../../../data/missions.json"),
             include_str!("../../../data/uniforms.json"),
             include_str!("../../../data/recruits.json"),
+            include_str!("../../../data/talk.json"),
             &saved,
         )
         .unwrap();
@@ -3821,5 +3861,112 @@ mod tests {
             }
             serde_json::from_str::<Value>(&g.hud_json()).unwrap();
         }
+    }
+
+    #[test]
+    fn interrogated_soldiers_say_different_things_and_intel_comes_with_an_opener() {
+        let mut g = start(0);
+        let m = g.missions[0].clone();
+        let talk = g.talk.clone();
+        let all: Vec<&String> = [&talk.nothing, &talk.marks, &talk.alone, &talk.again]
+            .into_iter()
+            .flatten()
+            .collect();
+        let mut heard: Vec<String> = Vec::new();
+        for _ in 0..60 {
+            let s = &mut r(&mut g).soldiers[2];
+            s.knows.clear();
+            s.talked = false;
+            for s in r(&mut g).soldiers.iter_mut() {
+                s.marked = false;
+            }
+            interrogate(r(&mut g), &m, 2, false, &mut Vec::new(), &mut Vec::new());
+            let said = r(&mut g).said.clone().unwrap().0;
+            assert!(all.contains(&&said), "a line from talk.json: {said}");
+            if !heard.contains(&said) {
+                heard.push(said);
+            }
+        }
+        assert!(
+            heard.len() >= 4,
+            "only {} different lines: {heard:?}",
+            heard.len()
+        );
+        // a soldier who knows something leads with one of the openers
+        let s = &mut r(&mut g).soldiers[3];
+        s.knows = vec![0];
+        s.mule_talked = false;
+        r(&mut g).revealed[0] = false;
+        r(&mut g).rng = Rng::new(1);
+        interrogate(r(&mut g), &m, 3, true, &mut Vec::new(), &mut Vec::new());
+        let said = r(&mut g).said.clone().unwrap().0;
+        assert!(said.ends_with(&m.intel[0].text), "{said}");
+        assert!(talk.opener.iter().any(|o| said.starts_with(o.as_str())), "{said}");
+    }
+
+    #[test]
+    fn killing_a_soldier_costs_points_and_says_so() {
+        let mut g = start(0);
+        only(&mut g, &[2]);
+        let s = r(&mut g).soldiers[2].pos;
+        r(&mut g).soldiers[2].wait = int(100);
+        r(&mut g).p.pos = v3(s.x + int(30), 0, s.z);
+        r(&mut g).revealed[0] = true;
+        let before = score(r(&mut g), false);
+        assert_eq!(before, SCORE_INTEL);
+        let mut t = 0;
+        kill(r(&mut g), 2);
+        assert_eq!(score(r(&mut g), false), before - SCORE_KILL);
+        // through play: the frame a soldier dies, a toast names the cost
+        r(&mut g).soldiers[2].life = Life::Awake;
+        r(&mut g).kills = 0;
+        r(&mut g).p.pos = s.add(v3(0, 0, ratio(6, 10)));
+        r(&mut g).hold = Some((2, HoldAct::Grip));
+        run(&mut g, CLOSE, 1, &mut t);
+        assert_eq!(r(&mut g).kills, 1);
+        assert!(
+            g.toasts.contains(&format!("@kill_cost:{SCORE_KILL}")),
+            "{:?}",
+            g.toasts
+        );
+        let h: Value = serde_json::from_str(&g.hud_json()).unwrap();
+        assert_eq!(h["play"]["score"], before - SCORE_KILL);
+        // and a finished mission with a kill scores less than one without
+        let clean = {
+            let mut r2 = r(&mut g).clone();
+            r2.kills = 0;
+            score(&r2, true)
+        };
+        assert_eq!(score(r(&mut g), true), clean - SCORE_KILL);
+    }
+
+    #[test]
+    fn a_dive_out_of_a_sprint_leaves_the_ground_and_lands_prone() {
+        let mut g = start(0);
+        only(&mut g, &[]);
+        let mut t = 0;
+        r(&mut g).p.stance = Stance::Stand;
+        run(&mut g, FORWARD | SPRINT, 30, &mut t);
+        assert_eq!(r(&mut g).p.gait, Gait::Sprint);
+        let ground = r(&mut g).p.pos.y;
+        run(&mut g, FORWARD | SPRINT | JUMP, 1, &mut t);
+        let mut top = ground;
+        let mut posed = false;
+        for _ in 0..60 {
+            run(&mut g, FORWARD | SPRINT, 1, &mut t);
+            top = top.max(r(&mut g).p.pos.y);
+            if r(&mut g).p.airborne {
+                assert_eq!(r(&mut g).p.stance, Stance::Stand, "upright in the air, not prone");
+                posed |= r(&mut g).p.dive > 0;
+            }
+        }
+        assert!(
+            top - ground > ratio(3, 10),
+            "in the air: {} (Q16.16)",
+            top - ground
+        );
+        assert!(posed, "drawn as a dive while in the air");
+        assert_eq!(r(&mut g).p.stance, Stance::Prone);
+        assert!(!r(&mut g).p.airborne);
     }
 }

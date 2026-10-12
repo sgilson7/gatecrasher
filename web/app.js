@@ -61,11 +61,11 @@ function span(cls, text) {
 }
 
 async function start() {
-  const names = ["palette", "missions", "uniforms", "recruits", "copy", "controls", "sounds", "display"];
+  const names = ["palette", "missions", "uniforms", "recruits", "talk", "copy", "controls", "sounds", "display"];
   const texts = await Promise.all(
     names.map((n) => file(`data/${n}.json`)).concat([file("data/shaders/scene.vert"), file("data/shaders/scene.frag")]),
   );
-  const [palette, missions, uniforms, recruits, copyText, controlsText, soundsText, displayText, vertex, fragment] = texts;
+  const [palette, missions, uniforms, recruits, talk, copyText, controlsText, soundsText, displayText, vertex, fragment] = texts;
   const copy = JSON.parse(copyText);
   const display = JSON.parse(displayText);
   fillCopy(copy);
@@ -75,7 +75,7 @@ async function start() {
 
   let game;
   try {
-    game = new Game(palette, missions, uniforms, recruits, storage.load());
+    game = new Game(palette, missions, uniforms, recruits, talk, storage.load());
   } catch (e) {
     el("message").textContent = String(e);
     document.body.dataset.ready = "true";
@@ -247,6 +247,8 @@ async function start() {
       el("c-time").textContent = o.time;
       el("c-alerts").textContent = o.alerts;
       el("c-kills").textContent = o.kills;
+      el("c-kill-cost").textContent = copy.kill_cost_value.replace("{}", o.kill_cost);
+      el("c-score").textContent = o.score;
       el("c-intel").textContent = `${o.intel} / ${o.intel_total}`;
       const items = o.recruits.length ? o.recruits : [copy.no_recruits];
       el("c-recruits").replaceChildren(

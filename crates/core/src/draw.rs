@@ -3,7 +3,7 @@
 //! boxes posed by a few angles; the look is the TikZ art's: flat fills and a
 //! plum outline (the ink pass).
 
-use crate::balance::KICK_EVERY;
+use crate::balance::{DIVE_LIFT, GRAVITY, KICK_EVERY};
 use crate::content::{Palette, Rgb};
 use crate::fx::{self, deg, int, ratio, ONE};
 use crate::geom::{v3, Affine, V3};
@@ -43,6 +43,11 @@ pub enum Pose {
     },
     /// kicking a sleeping buddy awake; `t` is how long he has been at it
     Kick {
+        t: i32,
+    },
+    /// in the air in a dive out of a sprint, `t` after leaving the ground:
+    /// tipping from a run's lean to flat, arms out ahead
+    Dive {
         t: i32,
     },
 }
@@ -100,6 +105,22 @@ pub fn person(b: &mut Batch, pos: V3, yaw: i32, pose: Pose, look: &Look) {
         }
         Pose::Held => {
             base = base.then(&Affine::rot_x(deg(12)));
+        }
+        Pose::Dive { t } => {
+            // turning about the hip from a run's lean to flat over the time in
+            // the air, sinking and sliding so that the last frame is Prone's
+            let air = fx::div(2 * DIVE_LIFT, GRAVITY);
+            let f = fx::div(t, air).clamp(0, ONE);
+            let lean = deg(20) + fx::mul(fx::QUARTER - deg(20), f);
+            let hip = ratio(84, 100);
+            base = base
+                .then(&Affine::translate(v3(
+                    0,
+                    hip - fx::mul(hip - ratio(14, 100), f),
+                    -fx::mul(hip, f),
+                )))
+                .then(&Affine::rot_x(-lean))
+                .then(&Affine::translate(v3(0, -hip, 0)));
         }
         _ => {}
     }
@@ -264,6 +285,9 @@ pub fn person(b: &mut Batch, pos: V3, yaw: i32, pose: Pose, look: &Look) {
             fx::QUARTER
         } else if matches!(pose, Pose::HandsUp) {
             fx::HALF - deg(12)
+        } else if matches!(pose, Pose::Dive { .. }) {
+            // reaching ahead, over the head, as she flies
+            fx::HALF - deg(20)
         } else if matches!(pose, Pose::Kick { .. }) {
             // arms out a little for balance
             deg(14) * sgn

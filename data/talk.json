@@ -1,0 +1,43 @@
+{
+  "_about": "What soldiers say under interrogation; the core picks one line at random from the list that fits. `opener` comes before a line of intel (from missions.json); `nothing` is a soldier who will not or cannot talk; `marks` is one who knows nothing himself but points out soldiers near him; `alone` is one with nobody near to give up; `again` is one already asked. Several are about Big Chum, whom every soldier on the island has heard of.",
+  "opener": [
+    "\"Okay, okay! Don't shoot.\"",
+    "\"Big Chum? Here? Alright, I'll tell you.\"",
+    "\"Easy with that thing! Fine.\"",
+    "\"I'm not paid enough for this.\"",
+    "\"You didn't hear this from me.\"",
+    "\"Varga will have my head... but sure.\"",
+    "\"Ask me anything, I hate this place.\"",
+    "\"I knew you'd come one day. Here's what I know.\""
+  ],
+  "nothing": [
+    "\"I don't know anything! I swear!\"",
+    "\"I just guard the fence! Nobody tells me anything!\"",
+    "\"I've been here two days. I don't even know where the mess hall is.\"",
+    "\"I swear on my mother, I don't know.\"",
+    "\"They don't tell grunts like me anything.\"",
+    "\"Big Chum... is it really you? I wish I knew something. I really do.\"",
+    "\"I was asleep at the briefing. Honestly.\"",
+    "\"Please, I only work the radio. It's all static.\""
+  ],
+  "marks": [
+    "\"There's... there's more of us. Over there.\"",
+    "\"I'm not the only one out here. Look, there, and there.\"",
+    "\"My squad's close. That's all I've got.\"",
+    "\"The others are on rounds nearby. Don't hurt them, they're alright.\"",
+    "\"Over by the crates, and one up top. That's everyone I know of.\""
+  ],
+  "alone": [
+    "\"I'm on my own out here, I swear.\"",
+    "\"Nobody else on this stretch. They put me here because nobody likes me.\"",
+    "\"Just me. Always just me.\"",
+    "\"No one's close. You could have walked right past.\""
+  ],
+  "again": [
+    "\"I already told you everything!\"",
+    "\"That's all I know, I promise!\"",
+    "\"Same answer as before, Big Chum.\"",
+    "\"I've got nothing new. Honest.\"",
+    "\"Can I go now?\""
+  ]
+}
