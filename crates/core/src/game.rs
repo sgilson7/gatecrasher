@@ -343,6 +343,15 @@ impl Game {
         if let Some(u) = v["uniform"].as_u64() {
             self.uniform = (u as usize).min(self.uniforms.len() - 1);
         }
+        // a name made of words since retired from recruits.json is replaced
+        for (k, rec) in self.roster.iter_mut().enumerate() {
+            if !named_from(&rec.name, &self.recruits) {
+                let mut rng = Rng::new(77 + k as u64 * 13);
+                let a = rng.range(0, self.recruits.first.len() as i32 - 1) as usize;
+                let b = rng.range(0, self.recruits.second.len() as i32 - 1) as usize;
+                rec.name = format!("{} {}", self.recruits.first[a], self.recruits.second[b]);
+            }
+        }
         self.names = Rng::new(9 + self.roster.len() as u64 * 31);
     }
 
@@ -2327,6 +2336,15 @@ fn balloon_rise(t: i32) -> i32 {
     fx::mul(fx::mul(t, t), int(5))
 }
 
+/// Whether a codename is a first word and a second word from the lists.
+fn named_from(name: &str, recruits: &Recruits) -> bool {
+    recruits.first.iter().any(|f| {
+        name.strip_prefix(f.as_str())
+            .and_then(|rest| rest.strip_prefix(' '))
+            .is_some_and(|rest| recruits.second.iter().any(|w| w == rest))
+    })
+}
+
 fn recruit(r: &mut Run, i: usize, recruits: &Recruits, names: &mut Rng) -> Recruit {
     let s = &r.soldiers[i];
     let a = names.range(0, recruits.first.len() as i32 - 1) as usize;
@@ -3723,6 +3741,27 @@ mod tests {
         run(&mut g, 0, 60 * 2, &mut t);
         assert!(r(&mut g).soldiers[2].awake());
         assert!(matches!(r(&mut g).phase, Phase::Caution(_)));
+    }
+
+    #[test]
+    fn a_saved_recruit_named_with_a_retired_word_is_renamed_on_load() {
+        let saved = r#"{"roster":[{"name":"Retired Catfish","unit":1,"grade":2},{"name":"Velvet Heron","unit":0,"grade":1}]}"#;
+        let g = Game::new(
+            include_str!("../../../data/palette.json"),
+            include_str!("../../../data/missions.json"),
+            include_str!("../../../data/uniforms.json"),
+            include_str!("../../../data/recruits.json"),
+            saved,
+        )
+        .unwrap();
+        assert!(named_from(&g.roster[0].name, &g.recruits), "{}", g.roster[0].name);
+        assert!(!g.roster[0].name.contains("Retired"));
+        assert_eq!(
+            (g.roster[0].unit, g.roster[0].grade),
+            (1, 2),
+            "only the name changes"
+        );
+        assert_eq!(g.roster[1].name, "Velvet Heron", "a good name is kept");
     }
 
     #[test]
