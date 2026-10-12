@@ -50,6 +50,7 @@ See `SECOND-ORDER.md` for each: no reload (N6), Graceland is a screen (N4), desk
 | GitHub Actions on `39d0f4f`, then `tests/browser/check.py` against the live site | check passed and deployed (1 min 57 s); BROWSER CHECK PASSED in three engines live |
 | `./scripts/check.sh` (local, after the mule-tie fix, N23) | BUILDER CHECK PASSED: 92 core tests, 11 boundary tests, browser check in three engines |
 | `./scripts/check.sh` (local, after human-paced walk cycles N24, Corporal Grace N25, Big Chum and the thank-you on landing N26) | BUILDER CHECK PASSED: 93 core tests, 11 boundary tests, browser check in three engines |
+| website: commit `6d3e9f2` (only `content/projects/gatecrasher.md`), then `make check`, `make packet`, the gate, `publish.sh` and the live gate, all from a clean git worktree | build a9a6d21b live; gate passed live. Built from a worktree because the website folder held another session's uncommitted Long Time Comin' draft, which a deploy from the folder would have published; that draft was left untouched and unpublished |
 | Headless Chromium screenshots | portal window shows the far side (a palm tree in front of the blue portal, in the orange window); riding shows camo −60 % |
 
 ## Next
