@@ -50,6 +50,11 @@ pub enum Mind {
         buddy: usize,
         t: i32,
     },
+    /// held up at gunpoint: hands up, rifle dropped; `lapse` counts the
+    /// time since the gun was last on him
+    HandsUp {
+        lapse: i32,
+    },
     /// walking to a portal to shut it
     Portal {
         which: usize,
@@ -86,6 +91,8 @@ pub struct Soldier {
     pub target: bool,
     pub knows: Vec<usize>,
     pub talked: bool,
+    /// interrogated tied to the mule (he can be asked once more there)
+    pub mule_talked: bool,
     pub marked: bool,
     pub mark_t: i32,
     pub aim: i32,
@@ -94,6 +101,9 @@ pub struct Soldier {
     pub carried: bool,
     pub on_mule: bool,
     pub locker: Option<usize>,
+    /// where his rifle lies after a hold-up or a disarm; while it lies
+    /// there he cannot shoot
+    pub rifle_down: Option<V3>,
     /// bodies he has already reacted to, so one body is one reaction
     pub seen_bodies: Vec<usize>,
     pub moving: bool,
@@ -112,6 +122,8 @@ pub struct Target {
     pub vis: i32,
     pub hidden: bool,
     pub moving: bool,
+    /// standing and running or sprinting: loud enough to be felt behind him
+    pub running: bool,
     pub sprinting: bool,
     pub stance_hit: i32,
 }
@@ -155,6 +167,8 @@ pub enum Event {
         buddy: usize,
     },
     ShutPortal(usize),
+    /// a boot in the ribs of a sleeping buddy
+    Kick(V3),
 }
 
 pub const EYE: i32 = fx::ratio(16, 10);
@@ -181,6 +195,7 @@ impl Soldier {
             target: false,
             knows: Vec::new(),
             talked: false,
+            mule_talked: false,
             marked: false,
             mark_t: 0,
             aim: 0,
@@ -189,6 +204,7 @@ impl Soldier {
             carried: false,
             on_mule: false,
             locker: None,
+            rifle_down: None,
             seen_bodies: Vec::new(),
             moving: false,
             walk_phase: 0,
@@ -216,6 +232,10 @@ impl Soldier {
 
     pub fn eyes(&self) -> V3 {
         self.pos.add(v3(0, EYE, 0))
+    }
+
+    pub fn held_up(&self) -> bool {
+        matches!(self.mind, Mind::HandsUp { .. })
     }
 
     pub fn gaze(&self) -> i32 {
@@ -255,7 +275,7 @@ impl Soldier {
     /// One tick of sight on the player; returns whether he sees you.
     pub fn watch(&mut self, ctx: &Ctx, dt: i32, out: &mut Vec<Event>) -> bool {
         let t = &ctx.player;
-        if t.hidden {
+        if t.hidden || self.held_up() {
             return false;
         }
         let combat = matches!(ctx.phase, Phase::Combat(_));
@@ -263,8 +283,9 @@ impl Soldier {
         let eyes = self.eyes();
         let dist = t.chest.dist(eyes);
         let mut sees = self.can_see(ctx.world, t.chest, range, combat);
-        // a man right behind him is felt, unless he is still and in a box
-        if !sees && dist < PRESENCE && (t.moving || t.vis > 40) && ctx.world.clear(eyes, t.chest) {
+        // a man running up right behind him is felt; one creeping is not
+        let felt = !sees && dist < PRESENCE && t.running && ctx.world.clear(eyes, t.chest);
+        if felt {
             sees = true;
         }
         if !sees {
@@ -276,7 +297,11 @@ impl Soldier {
             return true;
         }
         let q = fx::div((range - dist).max(0), range.max(1));
-        let rate = int(NOTICE_BASE) + NOTICE_GAIN * fx::mul(q, q);
+        let rate = if felt {
+            int(PRESENCE_RATE)
+        } else {
+            int(NOTICE_BASE) + NOTICE_GAIN * fx::mul(q, q)
+        };
         let before = self.awareness;
         self.awareness = (self.awareness + fx::mul(rate, dt)).min(int(100));
         if before < int(SUSPICIOUS_AT) && self.awareness >= int(SUSPICIOUS_AT) {
@@ -308,7 +333,7 @@ impl Soldier {
             return;
         }
         match self.mind {
-            Mind::Combat => {}
+            Mind::Combat | Mind::HandsUp { .. } => {}
             Mind::Help { .. } | Mind::Portal { .. } if !gunshot => {}
             _ => {
                 self.awareness = self.awareness.max(int(40));
@@ -319,7 +344,7 @@ impl Soldier {
     }
 
     pub fn alert(&mut self) {
-        if self.free() {
+        if self.free() && !self.held_up() {
             self.mind = Mind::Combat;
             self.awareness = int(100);
             self.path_goal = None;
@@ -328,7 +353,7 @@ impl Soldier {
 
     /// Back to normal duty once combat or caution ends.
     pub fn stand_down(&mut self, searching: Option<V3>) {
-        if !self.free() {
+        if !self.free() || self.held_up() {
             return;
         }
         self.aim = 0;
@@ -467,6 +492,7 @@ impl Soldier {
                 }
             }
             Mind::Combat => self.fight(ctx, rng, dt, sees, out),
+            Mind::HandsUp { .. } => self.look = 0,
             Mind::Help { buddy, t } => {
                 let Some(b) = ctx.bodies.iter().find(|b| b.idx == buddy) else {
                     self.mind = Mind::Search {
@@ -478,6 +504,10 @@ impl Soldier {
                 if t > 0 || self.walk_to(ctx, b.at, JOG, dt) {
                     self.face(b.at, dt);
                     let need = if b.bound { UNTIE_TIME } else { WAKE_BUDDY };
+                    // a sleeper is woken with a boot: one kick a second
+                    if !b.bound && !b.dead && (t + dt) / KICK_EVERY != t / KICK_EVERY {
+                        out.push(Event::Kick(b.at));
+                    }
                     let t = t + dt;
                     if t >= need {
                         out.push(Event::Woke { by: self.id, buddy });
@@ -557,7 +587,7 @@ impl Soldier {
             self.face(p.pos, dt * 2);
             self.aim += dt;
             let need = if self.elite { AIM_TIME_ELITE } else { AIM_TIME };
-            if self.aim >= need && self.fire_cd <= 0 && !ctx.reflex {
+            if self.aim >= need && self.fire_cd <= 0 && !ctx.reflex && self.rifle_down.is_none() {
                 self.fire_cd = FIRE_EVERY;
                 let mut chance = HIT_CLOSE - HIT_PER_10M * (d / int(10)) - p.stance_hit;
                 if p.sprinting {
@@ -726,6 +756,7 @@ mod tests {
             vis,
             hidden: false,
             moving: false,
+            running: false,
             sprinting: false,
             stance_hit: 0,
         }
@@ -802,7 +833,7 @@ mod tests {
     }
 
     #[test]
-    fn he_does_not_see_behind_him_unless_you_are_right_there() {
+    fn he_feels_a_man_running_up_behind_him_and_not_one_creeping() {
         let (w, n) = setup();
         let behind = time_to_spot(
             &mut soldier(),
@@ -811,9 +842,15 @@ mod tests {
         assert_eq!(behind, None, "6 m behind");
         let mut t = target(v3(0, 0, int(31)), 100);
         t.moving = true;
+        assert_eq!(
+            time_to_spot(&mut soldier(), &ctx(&w, &n, t, Phase::Normal)),
+            None,
+            "1 m behind, creeping"
+        );
+        t.running = true;
         assert!(
             time_to_spot(&mut soldier(), &ctx(&w, &n, t, Phase::Normal)).is_some(),
-            "1 m behind, moving"
+            "1 m behind, running"
         );
     }
 

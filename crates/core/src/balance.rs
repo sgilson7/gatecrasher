@@ -57,7 +57,10 @@ pub const FAR: i32 = int(420);
 // --- noise: how far each movement is heard (MGS5's footstep rings) -------------------
 pub const NOISE_SPRINT: i32 = int(16);
 pub const NOISE_RUN: i32 = int(7);
-pub const NOISE_CROUCH: i32 = ratio(15, 10);
+/// A standing walk; crouch-walking makes the sneak ring, too small to reach
+/// a soldier's ears from grabbing distance (MGS5: creeping is silent).
+pub const NOISE_WALK: i32 = ratio(15, 10);
+pub const NOISE_SNEAK: i32 = ratio(6, 10);
 pub const NOISE_PRONE: i32 = 0;
 pub const NOISE_LETHAL: i32 = int(34);
 pub const NOISE_RICOCHET: i32 = int(4);
@@ -77,8 +80,10 @@ pub const SIGHT_COMBAT: i32 = int(64);
 pub const NEAR_SIGHT: i32 = int(9);
 pub const FAN_NEAR: i32 = deg(65);
 pub const FAN_FAR: i32 = deg(40);
-/// Close enough to sense you behind his back.
+/// Close enough to sense you running up behind his back (creeping is not felt).
 pub const PRESENCE: i32 = ratio(22, 10);
+/// Awareness per second, percent, from a man felt behind him.
+pub const PRESENCE_RATE: i32 = 120;
 /// Awareness per second, percent: base plus the close bonus.
 pub const NOTICE_BASE: i32 = 10;
 pub const NOTICE_GAIN: i32 = 260;
@@ -172,6 +177,17 @@ pub const CHOKE_TIME: i32 = ratio(25, 10);
 pub const TALK_CHANCE: i32 = 70;
 pub const MULE_TALK_CHANCE: i32 = 96;
 pub const TALK_MARK_RANGE: i32 = int(40);
+/// A hold-up: aim at a soldier this close who has noticed you, or whose
+/// back is to you, and he drops his rifle and puts his hands up.
+pub const HOLDUP_RANGE: i32 = int(6);
+/// He stays held up while the gun is on him from this near...
+pub const HOLDUP_KEEP: i32 = int(12);
+/// ...and this long after it leaves him, then picks up his rifle and radios.
+pub const HOLDUP_LAPSE: i32 = int(4);
+/// Aiming at a man on the ground this close, E interrogates him (MGS5's pin).
+pub const PIN_REACH: i32 = int(3);
+/// A soldier waking a sleeping buddy kicks him this often.
+pub const KICK_EVERY: i32 = ratio(9, 10);
 
 // --- bodies, hiding, fulton -----------------------------------------------------------------------
 pub const REACH: i32 = ratio(18, 10);
@@ -197,3 +213,12 @@ pub const MULE_SNIFF: i32 = int(24);
 pub const MULE_SNIFF_EVERY: i32 = int(1);
 pub const MULE_RAM_RANGE: i32 = int(45);
 pub const MULE_TIE_REACH: i32 = int(5);
+/// Riding him: close enough to climb on, the trot, where you sit, the
+/// hoofbeats' rings, and the camo index a rider has (a man on a mule is
+/// seen from far off: the brief says very noticeable).
+pub const MULE_MOUNT_REACH: i32 = ratio(25, 10);
+pub const MULE_TROT: i32 = ratio(55, 10);
+pub const RIDE_SEAT: i32 = ratio(60, 100);
+pub const NOISE_TROT: i32 = int(12);
+pub const NOISE_GALLOP: i32 = int(24);
+pub const RIDE_CAMO: i32 = -60;

@@ -230,9 +230,9 @@ impl Player {
                 let base = match (self.gait, self.stance) {
                     (Gait::Sprint, _) => NOISE_SPRINT,
                     (_, Stance::Prone) => NOISE_PRONE,
-                    (_, Stance::Crouch) => NOISE_CROUCH,
+                    (_, Stance::Crouch) => NOISE_SNEAK,
                     (Gait::Run, _) => NOISE_RUN,
-                    _ => NOISE_CROUCH,
+                    _ => NOISE_WALK,
                 };
                 let r = match world.surface_at(p) {
                     Surface::Floor => base * 6 / 5,

@@ -862,6 +862,60 @@
     "dur": 0.6,
     "gain": 0.1
    }
+  ],
+  "kick": [
+   {
+    "type": "noise",
+    "filter": "lowpass",
+    "freq": 500,
+    "q": 1,
+    "at": 0,
+    "attack": 0.002,
+    "dur": 0.12,
+    "gain": 0.25
+   },
+   {
+    "type": "osc",
+    "wave": "sine",
+    "from": 120,
+    "to": 60,
+    "at": 0,
+    "attack": 0.002,
+    "dur": 0.12,
+    "gain": 0.2
+   }
+  ],
+  "hands_up": [
+   {
+    "type": "osc",
+    "wave": "triangle",
+    "from": 330,
+    "to": 520,
+    "at": 0,
+    "attack": 0.01,
+    "dur": 0.18,
+    "gain": 0.12
+   },
+   {
+    "type": "noise",
+    "filter": "highpass",
+    "freq": 2500,
+    "q": 1,
+    "at": 0.12,
+    "attack": 0.005,
+    "dur": 0.15,
+    "gain": 0.08
+   },
+   {
+    "type": "osc",
+    "wave": "sine",
+    "from": 110,
+    "to": 70,
+    "at": 0.25,
+    "attack": 0.002,
+    "dur": 0.18,
+    "gain": 0.2
+   }
   ]
  }
 }

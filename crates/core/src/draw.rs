@@ -3,6 +3,7 @@
 //! boxes posed by a few angles; the look is the TikZ art's: flat fills and a
 //! plum outline (the ink pass).
 
+use crate::balance::KICK_EVERY;
 use crate::content::{Palette, Rgb};
 use crate::fx::{self, deg, int, ratio, ONE};
 use crate::geom::{v3, Affine, V3};
@@ -34,6 +35,16 @@ pub enum Pose {
     Bound,
     /// in a headlock: leaning back
     Held,
+    /// held up at gunpoint: both hands high
+    HandsUp,
+    /// astride the mule: legs apart and forward
+    Ride {
+        aim: bool,
+    },
+    /// kicking a sleeping buddy awake; `t` is how long he has been at it
+    Kick {
+        t: i32,
+    },
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -72,6 +83,7 @@ pub fn person(b: &mut Batch, pos: V3, yaw: i32, pose: Pose, look: &Look) {
         Pose::Upright { walk, moving, aim } => (walk, moving, aim, false),
         Pose::Crouch { walk, moving, aim } => (walk, moving, aim, true),
         Pose::Prone { walk } => (walk, true, false, false),
+        Pose::Ride { aim } => (0, false, aim, false),
         _ => (0, false, false, false),
     };
     match pose {
@@ -96,11 +108,20 @@ pub fn person(b: &mut Batch, pos: V3, yaw: i32, pose: Pose, look: &Look) {
     } else {
         0
     };
+    // a kick: the right leg swings forward and back, once a kick
+    let kick = match pose {
+        Pose::Kick { t } => {
+            let phase = fx::div(t % KICK_EVERY, KICK_EVERY) * (fx::TURN / ONE);
+            fx::mul(deg(55), fx::sin(phase & (fx::TURN - 1)).max(0))
+        }
+        _ => 0,
+    };
     let drop = if crouch { ratio(42, 100) } else { 0 };
     let hip = v3(0, ratio(84, 100) - drop, 0);
     // legs
+    let astride = matches!(pose, Pose::Ride { .. });
     for (side, sgn) in [(-1, 1), (1, -1)] {
-        let x = ratio(11, 100) * side;
+        let x = if astride { ratio(26, 100) } else { ratio(11, 100) } * side;
         if crouch {
             // thigh forward, shin down
             part(
@@ -124,11 +145,18 @@ pub fn person(b: &mut Batch, pos: V3, yaw: i32, pose: Pose, look: &Look) {
                 look.style,
             );
         } else {
+            let swing = if astride {
+                deg(35)
+            } else if side == 1 {
+                swing * sgn + kick
+            } else {
+                swing * sgn
+            };
             part(
                 b,
                 &base,
                 v3(x, hip.y, 0),
-                swing * sgn,
+                swing,
                 v3(x, ratio(44, 100), 0),
                 v3(ratio(16, 100), ratio(80, 100), ratio(18, 100)),
                 look.body,
@@ -138,7 +166,7 @@ pub fn person(b: &mut Batch, pos: V3, yaw: i32, pose: Pose, look: &Look) {
                 b,
                 &base,
                 v3(x, hip.y, 0),
-                swing * sgn,
+                swing,
                 v3(x, ratio(6, 100), -ratio(4, 100)),
                 v3(ratio(17, 100), ratio(12, 100), ratio(26, 100)),
                 look.boots,
@@ -234,6 +262,11 @@ pub fn person(b: &mut Batch, pos: V3, yaw: i32, pose: Pose, look: &Look) {
         let sh = v3(x, shoulder_y, -fx::mul(fx::sin(lean), ratio(54, 100)));
         let angle = if aim && side == 1 {
             fx::QUARTER
+        } else if matches!(pose, Pose::HandsUp) {
+            fx::HALF - deg(12)
+        } else if matches!(pose, Pose::Kick { .. }) {
+            // arms out a little for balance
+            deg(14) * sgn
         } else if matches!(pose, Pose::Bound) {
             0
         } else {
@@ -277,6 +310,32 @@ pub fn person(b: &mut Batch, pos: V3, yaw: i32, pose: Pose, look: &Look) {
             );
         }
     }
+}
+
+/// A rifle lying on the ground where a soldier dropped it.
+pub fn rifle(b: &mut Batch, at: V3, yaw: i32) {
+    let base = Affine::translate(at).then(&Affine::rot_y(yaw + fx::QUARTER / 3));
+    let gun = [ONE / 6, ONE / 7, ONE / 5];
+    b.push(
+        LAYER_INKED,
+        Mesh::Cube,
+        &base.then(&boxed(
+            v3(0, ratio(4, 100), 0),
+            v3(ratio(8, 100), ratio(8, 100), ratio(95, 100)),
+        )),
+        gun,
+        0,
+    );
+    b.push(
+        LAYER_INKED,
+        Mesh::Cube,
+        &base.then(&boxed(
+            v3(0, ratio(4, 100), ratio(10, 100)),
+            v3(ratio(7, 100), ratio(7, 100), ratio(20, 100)),
+        )),
+        gun,
+        0,
+    );
 }
 
 /// A person draped over a shoulder (carried) or a mule's back.

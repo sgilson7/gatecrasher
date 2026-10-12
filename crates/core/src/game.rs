@@ -48,6 +48,7 @@ pub const RAM: u32 = 1 << 20;
 pub const TIE: u32 = 1 << 21;
 pub const FULTON: u32 = 1 << 22;
 pub const FOCUS: u32 = 1 << 24;
+pub const RIDE: u32 = 1 << 25;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mode {
@@ -139,6 +140,8 @@ enum Prisoner {
     Caged,
     Free,
     Carried,
+    /// slung over the mule's back
+    OnMule,
     Gone,
 }
 
@@ -206,6 +209,10 @@ struct Run {
     tick: u32,
     said: Option<(String, i32)>,
     camo: i32,
+    /// in the mule's saddle
+    riding: bool,
+    /// hoofbeats while riding: time to the next
+    hoof: i32,
 }
 
 pub struct Game {
@@ -510,6 +517,8 @@ impl Game {
             tick: 0,
             said: None,
             camo: 0,
+            riding: false,
+            hoof: 0,
         });
         self.mode = Mode::Play;
         self.clock = None;
@@ -821,6 +830,9 @@ fn knock_out(r: &mut Run, i: usize, life: Life) {
     s.life = life;
     s.held = false;
     s.aim = 0;
+    if s.held_up() {
+        s.mind = Mind::Patrol;
+    }
     if let Some((k, _)) = r.reflex {
         if k == i {
             r.reflex = None;
@@ -840,7 +852,11 @@ fn kill(r: &mut Run, i: usize) {
 
 fn objective_done(r: &Run, m: &Mission) -> bool {
     match m.kind {
-        Kind::Rescue => r.prisoner == Prisoner::Gone || r.carry == Some(Carry::Commando),
+        Kind::Rescue => {
+            r.prisoner == Prisoner::Gone
+                || r.carry == Some(Carry::Commando)
+                || (r.prisoner == Prisoner::OnMule && r.mule.pos.dist(r.p.pos) < MULE_FAR)
+        }
         Kind::Eliminate => r
             .soldiers
             .iter()
@@ -888,11 +904,13 @@ fn interrogate(
     sounds: &mut Vec<&'static str>,
 ) {
     let chance = if on_mule { MULE_TALK_CHANCE } else { TALK_CHANCE };
-    if r.soldiers[i].talked && !on_mule {
+    let s = &mut r.soldiers[i];
+    if if on_mule { s.mule_talked } else { s.talked } {
         r.said = Some(("@talk_again".into(), SAID_TIME));
         return;
     }
-    r.soldiers[i].talked = true;
+    s.talked = true;
+    s.mule_talked |= on_mule;
     if !r.rng.chance(chance) {
         r.said = Some(("@talk_nothing".into(), SAID_TIME));
         return;
@@ -968,6 +986,12 @@ enum Use {
     Nothing,
     LeaveLocker,
     Talk,
+    /// a soldier with his hands up, near
+    TalkHeldUp(usize),
+    /// a soldier on the ground with the gun on him (MGS5's pin)
+    TalkPinned(usize),
+    /// the soldier tied to the mule
+    TalkMule,
     Stash(usize),
     Drop,
     OpenCage,
@@ -995,6 +1019,21 @@ fn what_use(r: &Run, m: &Mission) -> Use {
             }
         }
         return Use::Drop;
+    }
+    if let Some(i) = nearest_soldier(r, at, HOLDUP_RANGE, |s| s.free() && s.held_up()) {
+        return Use::TalkHeldUp(i);
+    }
+    if r.aiming {
+        if let Some(i) = nearest_soldier(r, at, PIN_REACH, |s| {
+            lying(s) && matches!(s.life, Life::Stunned(_) | Life::Bound)
+        }) {
+            return Use::TalkPinned(i);
+        }
+    }
+    if let Some(i) = r.mule.load {
+        if r.mule.pos.dist(at) < MULE_TIE_REACH && r.mule.talk <= 0 && !r.soldiers[i].mule_talked {
+            return Use::TalkMule;
+        }
     }
     if m.kind == Kind::Rescue {
         if r.prisoner == Prisoner::Caged {
@@ -1044,6 +1083,9 @@ fn fulton_target(r: &Run) -> Option<Who> {
             return Some(Who::Soldier(i));
         }
     }
+    if r.prisoner == Prisoner::OnMule && r.mule.pos.dist(r.p.pos) < MULE_TIE_REACH {
+        return Some(Who::Commando);
+    }
     nearest_soldier(r, r.p.pos, REACH, |s| lying(s) && s.life != Life::Dead).map(Who::Soldier)
 }
 
@@ -1060,6 +1102,12 @@ fn player_tick(
     toasts: &mut Vec<String>,
 ) {
     let _ = nav;
+    // in the saddle: shooting, portals, camo, the fulton and getting down
+    let pressed = if r.riding {
+        pressed & (RIDE | FIRE | ROUNDS | PORTAL_A | PORTAL_B | CLOSE | CLOAK | FULTON)
+    } else {
+        pressed
+    };
     let on = |b: u32| pressed & b != 0;
     if let Some((_, t)) = r.said.as_mut() {
         *t -= dt;
@@ -1122,6 +1170,9 @@ fn player_tick(
     }
     if on(UNIFORM) && !busy && !r.p.boxed && r.changing <= 0 {
         r.changing = UNIFORM_TIME;
+    }
+    if on(RIDE) {
+        mount(r, busy, sounds, toasts);
     }
     if on(CROUCH) {
         if let Some((i, HoldAct::Grip)) = r.hold {
@@ -1188,7 +1239,12 @@ fn player_tick(
         int(99)
     };
     let face = if r.aiming { Some(r.cam_yaw) } else { None };
-    let moved = r.p.step(&r.world, wish, bits & SPRINT != 0, cap, face, dt);
+    let moved = if r.riding {
+        ride(r, wish, bits & SPRINT != 0, dt, sounds);
+        player::Moved::default()
+    } else {
+        r.p.step(&r.world, wish, bits & SPRINT != 0, cap, face, dt)
+    };
     if moved.fell_to_death {
         fail(r, "fell");
         return;
@@ -1203,8 +1259,8 @@ fn player_tick(
             "step_soft"
         });
     }
-    // portals: walking through
-    if r.portal_cd <= 0 {
+    // portals: walking through (the mule does not fit)
+    if r.portal_cd <= 0 && !r.riding {
         if let [Some(a), Some(b)] = r.portals {
             for (from, to) in [(a, b), (b, a)] {
                 // the way she is trying to go: a wall stops the step but not the intent
@@ -1272,6 +1328,7 @@ fn player_tick(
     } else {
         r.mark = None;
     }
+    holdups(r, dt, sounds, toasts);
     // CQC
     if on(CQC) {
         cqc(r, sounds, toasts);
@@ -1347,7 +1404,11 @@ fn player_tick(
         }
     }
     let u = &uniforms[r.uniform.min(uniforms.len() - 1)];
-    r.camo = player::camo_index(&r.p, &r.world, u, r.cloak).index;
+    r.camo = if r.riding {
+        RIDE_CAMO
+    } else {
+        player::camo_index(&r.p, &r.world, u, r.cloak).index
+    };
     // the landing zone
     let lz = v3(m.lz.x, 0, m.lz.z);
     if v3(r.p.pos.x, 0, r.p.pos.z).dist(lz) < LZ_RADIUS && objective_done(r, m) {
@@ -1452,6 +1513,73 @@ fn shoot(r: &mut Run, sounds: &mut Vec<&'static str>) {
     }
 }
 
+/// Where a dropped rifle lands: on the ground just in front of him.
+fn rifle_spot(world: &World, at: V3, yaw: i32) -> V3 {
+    let p = at.add(facing(yaw, 0).scale(ratio(7, 10)));
+    v3(p.x, world.ground(p, ONE / 10, at.y + STEP), p.z)
+}
+
+/// MGS5's hold-up. Aim at a soldier close by who has noticed you, or whose
+/// back is to you, and he drops his rifle and puts his hands up. He stays so
+/// while the gun stays on him; let it wander too long and he picks the rifle
+/// up and radios in.
+fn holdups(r: &mut Run, dt: i32, sounds: &mut Vec<&'static str>, toasts: &mut Vec<String>) {
+    if r.aiming && r.hold.is_none() && r.carry.is_none() && !matches!(r.phase, Phase::Combat(_)) {
+        if let (Some(i), _, _) = aimed(r, HOLDUP_RANGE) {
+            let s = &r.soldiers[i];
+            let d = r.p.pos.sub(s.pos);
+            let off = fx::wrap(fx::atan2(-d.x, -d.z) - s.gaze()).abs();
+            let ready = s.free()
+                && s.life == Life::Awake
+                && !s.held_up()
+                && !matches!(s.mind, Mind::Combat)
+                && (off > GRAB_BEHIND || s.awareness >= int(SUSPICIOUS_AT));
+            if ready {
+                let spot = rifle_spot(&r.world, s.pos, s.yaw);
+                let s = &mut r.soldiers[i];
+                s.mind = Mind::HandsUp { lapse: 0 };
+                s.awareness = 0;
+                s.aim = 0;
+                s.path.clear();
+                s.path_goal = None;
+                s.rifle_down = Some(spot);
+                if matches!(r.reflex, Some((k, _)) if k == i) {
+                    r.reflex = None;
+                }
+                r.said = Some(("@held_up".into(), SAID_TIME));
+                sounds.push("hands_up");
+            }
+        }
+    }
+    let chest = r.p.chest();
+    for k in 0..r.soldiers.len() {
+        let Mind::HandsUp { lapse } = r.soldiers[k].mind else {
+            continue;
+        };
+        let s = &r.soldiers[k];
+        if !s.free() {
+            continue;
+        }
+        let d = s.pos.dist(r.p.pos);
+        let covered = (r.aiming && d < HOLDUP_KEEP && r.world.clear(s.eyes(), chest)) || d < REACH;
+        let lapse = if covered { 0 } else { lapse + dt };
+        let s = &mut r.soldiers[k];
+        if lapse > HOLDUP_LAPSE {
+            s.rifle_down = None;
+            s.awareness = int(INVESTIGATE_AT);
+            s.mind = Mind::Search {
+                at: r.p.pos,
+                t: SEARCH_TIME,
+            };
+            caution(r);
+            sounds.push("radio");
+            toasts.push("@radio_held_up".into());
+        } else {
+            s.mind = Mind::HandsUp { lapse };
+        }
+    }
+}
+
 fn cqc(r: &mut Run, sounds: &mut Vec<&'static str>, toasts: &mut Vec<String>) {
     if let Some((i, HoldAct::Grip)) = r.hold {
         r.hold = Some((i, HoldAct::Choke(0)));
@@ -1470,9 +1598,12 @@ fn cqc(r: &mut Run, sounds: &mut Vec<&'static str>, toasts: &mut Vec<String>) {
     let off = fx::wrap(fx::atan2(-d.x, -d.z) - s.gaze()).abs();
     let near = d.len_xz() < GRAB_REACH;
     let aware = matches!(s.mind, Mind::Combat) || s.awareness >= int(SPOTTED_AT);
-    if near && off > GRAB_BEHIND && !aware {
+    if near && (off > GRAB_BEHIND || s.held_up()) && !aware {
         r.soldiers[i].held = true;
         r.soldiers[i].path.clear();
+        if r.soldiers[i].held_up() {
+            r.soldiers[i].mind = Mind::Patrol;
+        }
         r.hold = Some((i, HoldAct::Grip));
         if let Some((k, _)) = r.reflex {
             if k == i {
@@ -1484,6 +1615,8 @@ fn cqc(r: &mut Run, sounds: &mut Vec<&'static str>, toasts: &mut Vec<String>) {
     } else {
         // from the front: take the rifle off him and put him on the ground
         knock_out(r, i, Life::Stunned(STUN_THROW));
+        let s = &mut r.soldiers[i];
+        s.rifle_down = Some(rifle_spot(&r.world, s.pos, s.yaw));
         noise(r, me, NOISE_THROW, false);
         sounds.push("throw");
         toasts.push("@disarmed".into());
@@ -1498,6 +1631,14 @@ fn use_press(r: &mut Run, m: &Mission, sounds: &mut Vec<&'static str>, toasts: &
                 r.hold = Some((i, HoldAct::Talk(0)));
                 sounds.push("talk");
             }
+        }
+        Use::TalkHeldUp(i) | Use::TalkPinned(i) => {
+            sounds.push("talk");
+            interrogate(r, m, i, false, toasts, sounds);
+        }
+        Use::TalkMule => {
+            r.mule.talk = INTERROGATE_TIME;
+            sounds.push("talk");
         }
         Use::Stash(k) => {
             if let Some(Carry::Soldier(i)) = r.carry {
@@ -1610,8 +1751,108 @@ fn fulton(r: &mut Run, sounds: &mut Vec<&'static str>, toasts: &mut Vec<String>)
     sounds.push("fulton");
 }
 
+/// Into the saddle, or down from it. Riding is quick and loud: soldiers
+/// hear the hooves and see a rider from far off.
+fn mount(r: &mut Run, busy: bool, sounds: &mut Vec<&'static str>, toasts: &mut Vec<String>) {
+    if r.riding {
+        r.riding = false;
+        let side = r.mule.pos.sub(right_of(r.mule.yaw).scale(ratio(12, 10)));
+        let at = r
+            .world
+            .collide(v3(side.x, r.mule.pos.y, side.z), RADIUS, HEIGHT_STAND);
+        r.p.pos = v3(at.x, r.world.ground(at, RADIUS, r.mule.pos.y + STEP), at.z);
+        r.p.vel = V3::ZERO;
+        r.p.vy = 0;
+        sounds.push("drop");
+        return;
+    }
+    if busy || r.p.boxed || r.p.airborne || matches!(r.mule.mode, MuleMode::Charge(_)) {
+        return;
+    }
+    if r.mule.pos.dist(r.p.pos) > MULE_MOUNT_REACH {
+        toasts.push("@mule_far".into());
+        return;
+    }
+    r.riding = true;
+    r.p.stance = Stance::Stand;
+    r.mule.mode = MuleMode::Follow;
+    r.mule.path.clear();
+    r.mule.goal = None;
+    sounds.push("bray");
+}
+
+/// One tick in the saddle: the mule goes where you steer, at a trot or,
+/// sprinting, a gallop, and every hoofbeat carries.
+fn ride(r: &mut Run, wish: V3, gallop: bool, dt: i32, sounds: &mut Vec<&'static str>) {
+    let speed = if gallop { MULE_RUN } else { MULE_TROT };
+    let to = r.mule.pos.add(wish.scale(fx::mul(speed, dt)));
+    let mut p = r.world.collide(to, ratio(5, 10), ratio(16, 10));
+    let ground = r.world.ground(p, ratio(4, 10), r.mule.pos.y + STEP);
+    p.y = if ground < r.mule.pos.y {
+        (r.mule.pos.y - fx::mul(int(8), dt)).max(ground)
+    } else {
+        ground
+    };
+    let moving = p != r.mule.pos;
+    r.mule.moving = moving;
+    r.mule.pos = p;
+    if wish != V3::ZERO {
+        let h = fx::atan2(-wish.x, -wish.z);
+        let d = fx::wrap(h - r.mule.yaw);
+        let max = fx::mul(deg(300), dt);
+        r.mule.yaw = (r.mule.yaw + d.clamp(-max, max)) & (fx::TURN - 1);
+    }
+    if moving {
+        r.mule.walk = (r.mule.walk + fx::mul(speed, dt) * 3) & (fx::TURN - 1);
+    }
+    r.p.pos = p.add(v3(0, RIDE_SEAT, 0));
+    r.p.vel = V3::ZERO;
+    r.p.vy = 0;
+    r.p.airborne = false;
+    r.p.yaw = if r.aiming { r.cam_yaw } else { r.mule.yaw };
+    r.p.gait = match (moving, gallop) {
+        (false, _) => Gait::Still,
+        (true, false) => Gait::Run,
+        (true, true) => Gait::Sprint,
+    };
+    r.hoof -= dt;
+    if moving && r.hoof <= 0 {
+        r.hoof = STEP_EVERY;
+        noise(r, p, if gallop { NOISE_GALLOP } else { NOISE_TROT }, false);
+        sounds.push("step");
+    }
+}
+
 fn tie(r: &mut Run, sounds: &mut Vec<&'static str>, toasts: &mut Vec<String>) {
     let me = r.p.pos;
+    // Corporal Vance rides the mule out
+    if r.prisoner == Prisoner::OnMule {
+        if r.mule.pos.dist(me) < MULE_TIE_REACH {
+            r.prisoner = Prisoner::Free;
+            let at = r.mule.pos.add(right_of(r.mule.yaw).scale(int(1)));
+            r.prisoner_at = v3(at.x, r.world.ground(at, RADIUS / 2, r.mule.pos.y + STEP), at.z);
+            sounds.push("drop");
+        }
+        return;
+    }
+    let vance = r.carry == Some(Carry::Commando)
+        || (r.prisoner == Prisoner::Free && r.prisoner_at.dist(me) < REACH * 2);
+    if vance {
+        if r.mule.load.is_some() {
+            toasts.push("@mule_full".into());
+        } else if r.mule.pos.dist(me) > MULE_TIE_REACH * 2 {
+            toasts.push("@mule_far".into());
+        } else {
+            if r.carry == Some(Carry::Commando) {
+                r.carry = None;
+            }
+            r.prisoner = Prisoner::OnMule;
+            r.mule.mode = MuleMode::Follow;
+            toasts.push("@vance_on_mule".into());
+            sounds.push("tie");
+        }
+        return;
+    }
     if let Some(i) = r.mule.load {
         if r.mule.pos.dist(me) < MULE_TIE_REACH {
             let s = &mut r.soldiers[i];
@@ -1635,6 +1876,10 @@ fn tie(r: &mut Run, sounds: &mut Vec<&'static str>, toasts: &mut Vec<String>) {
         toasts.push("@tie_nothing".into());
         return;
     };
+    if r.prisoner == Prisoner::OnMule {
+        toasts.push("@mule_full".into());
+        return;
+    }
     if r.mule.pos.dist(r.soldiers[i].pos) > MULE_TIE_REACH * 2 {
         toasts.push("@mule_far".into());
         return;
@@ -1644,7 +1889,7 @@ fn tie(r: &mut Run, sounds: &mut Vec<&'static str>, toasts: &mut Vec<String>) {
     s.on_mule = true;
     s.carried = false;
     r.mule.load = Some(i);
-    r.mule.talk = INTERROGATE_TIME;
+    r.mule.talk = 0;
     r.mule.mode = MuleMode::Follow;
     sounds.push("bray");
     sounds.push("tie");
@@ -1660,6 +1905,7 @@ fn target_of(r: &Run) -> Target {
         vis: (100 - r.camo).clamp(5, 160),
         hidden: p.locker.is_some(),
         moving: p.gait != Gait::Still,
+        running: (p.stance == Stance::Stand || r.riding) && matches!(p.gait, Gait::Run | Gait::Sprint),
         sprinting: p.gait == Gait::Sprint,
         stance_hit: match p.stance {
             Stance::Stand => 0,
@@ -1809,6 +2055,11 @@ fn soldiers_tick(r: &mut Run, nav: &Nav, dt: i32, sounds: &mut Vec<&'static str>
                 caution(r);
                 sounds.push("radio");
             }
+            Event::Kick(at) => {
+                if at.dist(r.p.pos) < int(40) {
+                    sounds.push("kick");
+                }
+            }
             Event::ShutPortal(k) => {
                 if r.portals[k].is_some() {
                     r.portals[k] = None;
@@ -1884,6 +2135,17 @@ fn mule_tick(
             }
         }
         r.soldiers[i].pos = r.mule.pos.add(v3(0, ratio(17, 10), 0));
+    }
+    if r.prisoner == Prisoner::OnMule {
+        r.prisoner_at =
+            r.mule
+                .pos
+                .add(facing(r.mule.yaw, 0).scale(-ratio(3, 10)))
+                .add(v3(0, ratio(17, 10), 0));
+    }
+    if r.riding {
+        // you steer him (player_tick moves him)
+        return;
     }
     let me = v3(r.p.pos.x, 0, r.p.pos.z);
     let (goal, speed) = match r.mule.mode {
@@ -2106,6 +2368,7 @@ impl Game {
                 draw::cardboard(&mut b, r.p.pos, r.p.yaw, p.get("box"));
             } else {
                 let pose = match r.p.stance {
+                    _ if r.riding => Pose::Ride { aim: r.aiming },
                     Stance::Stand => Pose::Upright {
                         walk,
                         moving,
@@ -2132,8 +2395,25 @@ impl Game {
                 draw::draped(&mut b, s.pos, if s.on_mule { r.mule.yaw } else { r.p.yaw }, &look);
                 continue;
             }
+            if let Some(at) = s.rifle_down {
+                draw::rifle(&mut b, at, s.yaw);
+            }
             let pose = if s.held {
                 Pose::Held
+            } else if s.held_up() && s.free() {
+                Pose::HandsUp
+            } else if let (Mind::Help { buddy, t }, true) =
+                (s.mind, s.free() && s.life == Life::Awake && !s.moving)
+            {
+                if r.soldiers[buddy].life == Life::Bound {
+                    Pose::Crouch {
+                        walk: 0,
+                        moving: false,
+                        aim: false,
+                    }
+                } else {
+                    Pose::Kick { t }
+                }
             } else if s.life == Life::Bound {
                 Pose::Bound
             } else if s.down() {
@@ -2142,7 +2422,7 @@ impl Game {
                 Pose::Upright {
                     walk: s.walk_phase,
                     moving: s.moving,
-                    aim: matches!(s.mind, Mind::Combat),
+                    aim: matches!(s.mind, Mind::Combat) && s.rifle_down.is_none(),
                 }
             };
             draw::person(&mut b, s.pos, s.yaw, pose, &look);
@@ -2224,6 +2504,7 @@ impl Game {
             ),
             Prisoner::Free => draw::person(&mut b, r.prisoner_at, deg(90), Pose::Lying, &cl),
             Prisoner::Carried => draw::draped(&mut b, r.prisoner_at, r.p.yaw, &cl),
+            Prisoner::OnMule => draw::draped(&mut b, r.prisoner_at, r.mule.yaw, &cl),
             Prisoner::Gone => {}
         }
         if !r.case_taken {
@@ -2438,6 +2719,9 @@ impl Game {
             Use::Nothing => "",
             Use::LeaveLocker => "use_leave",
             Use::Talk => "use_talk",
+            Use::TalkHeldUp(_) => "use_talk_held_up",
+            Use::TalkPinned(_) => "use_talk_pinned",
+            Use::TalkMule => "use_talk_mule",
             Use::Stash(_) => "use_stash",
             Use::Drop => "use_drop",
             Use::OpenCage => "use_cage",
@@ -2458,12 +2742,23 @@ impl Game {
                 let s = &r.soldiers[i];
                 let d = r.p.pos.sub(s.pos);
                 let off = fx::wrap(fx::atan2(-d.x, -d.z) - s.gaze()).abs();
-                prompts.push(if off > GRAB_BEHIND {
+                prompts.push(if off > GRAB_BEHIND || s.held_up() {
                     "cqc_grab"
                 } else {
                     "cqc_throw"
                 });
             }
+        }
+        if r.mule.talk > 0 {
+            prompts.push("hold_talking");
+        }
+        if r.riding {
+            prompts.push("riding");
+        } else if r.mule.pos.dist(r.p.pos) < MULE_MOUNT_REACH && r.hold.is_none() && r.carry.is_none() {
+            prompts.push("mule_mount");
+        }
+        if r.soldiers.iter().any(|s| s.held_up() && s.free()) {
+            prompts.push("held_up_keep");
         }
         if fulton_target(r).is_some() && r.p.locker.is_none() {
             prompts.push("fulton_ready");
@@ -2512,6 +2807,8 @@ impl Game {
             "said_key": said_key,
             "said_text": said_text,
             "mule_loaded": r.mule.load.is_some(),
+            "mule_vance": r.prisoner == Prisoner::OnMule,
+            "riding": r.riding,
             "mule_mode": match r.mule.mode { MuleMode::Follow => "follow", MuleMode::Come => "come", MuleMode::Charge(_) => "charge" },
         });
         if let Some(o) = &r.outcome {
@@ -2608,7 +2905,7 @@ pub fn numbers() -> String {
             "crouch": CROUCH, "prone": PRONE, "jump": JUMP, "use": USE, "cqc": CQC, "fire": FIRE,
             "aim": AIM, "rounds": ROUNDS, "portal_a": PORTAL_A, "portal_b": PORTAL_B, "close": CLOSE,
             "cloak": CLOAK, "box": BOX, "uniform": UNIFORM, "whistle": WHISTLE, "ram": RAM,
-            "tie": TIE, "fulton": FULTON, "focus": FOCUS
+            "tie": TIE, "fulton": FULTON, "focus": FOCUS, "ride": RIDE
         },
     })
     .to_string()
@@ -2901,9 +3198,219 @@ mod tests {
         r(&mut g).mule.pos = s.add(v3(int(2), 0, ONE));
         press(&mut g, TIE, &mut t);
         assert_eq!(r(&mut g).mule.load, Some(7));
+        run(&mut g, 0, 30, &mut t);
+        assert!(!r(&mut g).revealed[0], "he waits to be asked");
+        assert!(g.hud_json().contains("use_talk_mule"), "{}", g.hud_json());
+        press(&mut g, USE, &mut t);
         run(&mut g, 0, 150, &mut t);
         assert!(r(&mut g).revealed[0], "he told who Varga is");
         assert!(r(&mut g).soldiers.iter().any(|s| s.target && s.marked));
+        // asked again, he has nothing more
+        assert!(!g.hud_json().contains("use_talk_mule"));
+    }
+
+    #[test]
+    fn crept_up_on_from_behind_he_never_turns_and_the_grab_works() {
+        let mut g = start(0);
+        only(&mut g, &[8]);
+        r(&mut g).soldiers[8].wait = int(100);
+        let s = r(&mut g).soldiers[8].pos;
+        let yaw = r(&mut g).soldiers[8].yaw;
+        // six metres behind him, crouched, facing his back
+        let start = s.sub(facing(yaw, 0).scale(int(6)));
+        r(&mut g).p.pos = v3(start.x, 0, start.z);
+        r(&mut g).p.stance = Stance::Crouch;
+        r(&mut g).p.yaw = yaw;
+        r(&mut g).cam_yaw = yaw;
+        let mut t = 0;
+        let mut frames = 0;
+        while r(&mut g).p.pos.dist(s) > ratio(15, 10) && frames < 600 {
+            run(&mut g, FORWARD, 1, &mut t);
+            frames += 1;
+        }
+        assert!(frames < 600, "never got there");
+        let a = r(&mut g).soldiers[8].awareness;
+        assert!(a < int(SUSPICIOUS_AT), "he noticed: {}", a / ONE);
+        assert!(g.hud_json().contains("cqc_grab"), "{}", g.hud_json());
+        press(&mut g, CQC, &mut t);
+        assert!(
+            matches!(r(&mut g).hold, Some((8, HoldAct::Grip))),
+            "{:?}",
+            r(&mut g).hold
+        );
+    }
+
+    #[test]
+    fn running_up_behind_him_he_turns() {
+        let mut g = start(0);
+        only(&mut g, &[8]);
+        r(&mut g).soldiers[8].wait = int(100);
+        let s = r(&mut g).soldiers[8].pos;
+        let yaw = r(&mut g).soldiers[8].yaw;
+        let start = s.sub(facing(yaw, 0).scale(int(8)));
+        r(&mut g).p.pos = v3(start.x, 0, start.z);
+        r(&mut g).cam_yaw = yaw;
+        r(&mut g).p.stance = Stance::Stand;
+        let mut t = 0;
+        run(&mut g, FORWARD | SPRINT, 120, &mut t);
+        let (a, m, p) = (
+            r(&mut g).soldiers[8].awareness,
+            r(&mut g).soldiers[8].mind,
+            r(&mut g).p.pos,
+        );
+        assert!(
+            a >= int(SUSPICIOUS_AT) || r(&mut g).reflex.is_some(),
+            "{} {:?} {:?} {:?} {:?}",
+            a / ONE,
+            m,
+            p,
+            s,
+            r(&mut g).p.gait
+        );
+    }
+
+    /// A hold-up from behind: aim at his back close up.
+    fn held_up(g: &mut Game, t: &mut i64) -> usize {
+        only(g, &[8]);
+        r(g).soldiers[8].wait = int(100);
+        let s = r(g).soldiers[8].pos;
+        let yaw = r(g).soldiers[8].yaw;
+        let me = s.sub(facing(yaw, 0).scale(int(4)));
+        r(g).p.pos = v3(me.x, 0, me.z);
+        aim_at(g, s.add(v3(0, int(1), 0)));
+        run(g, AIM, 3, t);
+        8
+    }
+
+    #[test]
+    fn aimed_at_close_up_he_drops_his_rifle_puts_his_hands_up_and_talks() {
+        let mut g = start(0);
+        let mut t = 0;
+        let i = held_up(&mut g, &mut t);
+        let s = &r(&mut g).soldiers[i];
+        assert!(s.held_up(), "{:?}", s.mind);
+        assert!(s.rifle_down.is_some(), "he dropped his rifle");
+        // he stays so while the gun is on him, and never spots you
+        run(&mut g, AIM, 600, &mut t);
+        assert!(r(&mut g).soldiers[i].held_up());
+        assert!(r(&mut g).reflex.is_none());
+        assert_eq!(r(&mut g).phase, Phase::Normal);
+        // E: he talks (forced: find a seed under which he does)
+        let mut seed = 1;
+        while !Rng::new(seed).chance(TALK_CHANCE) {
+            seed += 1;
+        }
+        r(&mut g).rng = Rng::new(seed);
+        assert!(g.hud_json().contains("use_talk_held_up"), "{}", g.hud_json());
+        run(&mut g, AIM | USE, 1, &mut t);
+        assert!(r(&mut g).soldiers[i].talked);
+        assert!(r(&mut g).revealed[0], "the commando's whereabouts");
+    }
+
+    #[test]
+    fn a_hold_up_left_alone_picks_up_his_rifle_and_radios() {
+        let mut g = start(0);
+        let mut t = 0;
+        let i = held_up(&mut g, &mut t);
+        assert!(r(&mut g).soldiers[i].held_up());
+        run(&mut g, 0, 300, &mut t);
+        let s = &r(&mut g).soldiers[i];
+        assert!(!s.held_up() && s.rifle_down.is_none(), "{:?}", s.mind);
+        assert!(matches!(r(&mut g).phase, Phase::Caution(_)));
+    }
+
+    #[test]
+    fn a_disarmed_soldier_cannot_shoot() {
+        let mut g = start(0);
+        let mut t = 0;
+        let i = held_up(&mut g, &mut t);
+        // turned to face you, in combat, with his rifle on the ground
+        let d = r(&mut g).p.pos.sub(r(&mut g).soldiers[i].pos);
+        r(&mut g).soldiers[i].yaw = fx::atan2(-d.x, -d.z) & (fx::TURN - 1);
+        r(&mut g).soldiers[i].mind = Mind::Combat;
+        r(&mut g).phase = Phase::Combat(0);
+        r(&mut g).p.stance = Stance::Stand;
+        run(&mut g, 0, 600, &mut t);
+        assert!(
+            matches!(r(&mut g).phase, Phase::Combat(_)),
+            "he saw you all along"
+        );
+        assert!(r(&mut g).outcome.is_none(), "he shot you without a rifle");
+    }
+
+    #[test]
+    fn a_buddy_wakes_a_sleeper_with_kicks() {
+        let mut g = start(0);
+        only(&mut g, &[7, 8]);
+        let mut t = 0;
+        let s8 = r(&mut g).soldiers[8].pos;
+        r(&mut g).soldiers[7].pos = s8.add(v3(int(3), 0, 0));
+        r(&mut g).soldiers[7].wait = int(100);
+        r(&mut g).soldiers[8].life = Life::Asleep(SLEEP_TIME);
+        r(&mut g).soldiers[7].mind = Mind::Help { buddy: 8, t: 0 };
+        r(&mut g).p.pos = s8.add(v3(int(10), 0, 0));
+        let mut kicks = 0;
+        let mut kicking = false;
+        for _ in 0..400 {
+            run(&mut g, 0, 1, &mut t);
+            kicks += g.sounds.iter().filter(|s| **s == "kick").count();
+            if let Some(r) = g.run.as_ref() {
+                kicking |= matches!(r.soldiers[7].mind, Mind::Help { t, .. } if t > 0);
+            }
+        }
+        assert!(kicking);
+        assert!(kicks >= 2, "{kicks} kicks");
+        assert_eq!(r(&mut g).soldiers[8].life, Life::Awake);
+    }
+
+    #[test]
+    fn vance_goes_on_the_mule_and_rides_out_with_you() {
+        let mut g = start(0);
+        only(&mut g, &[]);
+        let mut t = 0;
+        let door = r(&mut g).world.place_at("cage_door").unwrap();
+        r(&mut g).p.pos = v3(door.x - ratio(8, 10), 0, door.z);
+        press(&mut g, USE, &mut t);
+        assert_eq!(r(&mut g).prisoner, Prisoner::Free);
+        let at = r(&mut g).prisoner_at;
+        r(&mut g).mule.pos = r(&mut g).p.pos.add(v3(0, 0, int(2)));
+        r(&mut g).mule.pos.y = 0;
+        r(&mut g).p.pos = v3(at.x, 0, at.z).add(v3(ONE, 0, 0));
+        press(&mut g, TIE, &mut t);
+        assert_eq!(r(&mut g).prisoner, Prisoner::OnMule);
+        // the mule brings him along to the landing zone
+        let lz = g.missions[0].lz;
+        r(&mut g).p.pos = v3(lz.x, 0, lz.z);
+        r(&mut g).mule.pos = v3(lz.x + int(3), 0, lz.z);
+        run(&mut g, 0, 5, &mut t);
+        assert_eq!(g.mode(), Mode::Complete);
+    }
+
+    #[test]
+    fn riding_the_mule_is_fast_and_loud() {
+        let mut g = start(0);
+        only(&mut g, &[2]);
+        let mut t = 0;
+        let me = v3(0, 0, int(40));
+        r(&mut g).p.pos = me;
+        r(&mut g).mule.pos = me.add(v3(ONE, 0, 0));
+        r(&mut g).cam_yaw = 0;
+        r(&mut g).soldiers[2].pos = v3(0, 0, int(20));
+        r(&mut g).soldiers[2].yaw = 0;
+        r(&mut g).soldiers[2].wait = int(100);
+        r(&mut g).soldiers[2].route = vec![(v3(0, 0, int(20)), 0)];
+        press(&mut g, RIDE, &mut t);
+        assert!(r(&mut g).riding);
+        assert!(r(&mut g).camo < 0, "a rider stands out");
+        run(&mut g, FORWARD | SPRINT, 30, &mut t);
+        let gone = me.dist(r(&mut g).mule.pos);
+        assert!(gone > int(3), "half a second at a gallop: {}", gone / ONE);
+        assert!(r(&mut g).p.pos.dist(r(&mut g).mule.pos) < int(1));
+        // the soldier ahead, facing away, hears the hooves
+        let s = &r(&mut g).soldiers[2];
+        assert!(!matches!(s.mind, Mind::Patrol), "{:?}", s.mind);
+        press(&mut g, RIDE, &mut t);
+        assert!(!r(&mut g).riding);
     }
 
     #[test]
