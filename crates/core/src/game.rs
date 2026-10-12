@@ -239,6 +239,9 @@ pub struct Game {
     dynamic_vals: Vec<i32>,
     dynamic_runs: Vec<(usize, u32, u32, u32)>,
     cam: Camera,
+    /// the camera looking out of the other portal, and its clip plane, for
+    /// each portal you can see into
+    through: [Option<(Camera, [i32; 4])>; 2],
     orbit: i32,
     sounds: Vec<&'static str>,
     toasts: Vec<String>,
@@ -292,7 +295,9 @@ impl Game {
                 fwd: facing(0, -deg(20)),
                 fov: FOV,
                 far: FAR,
+                up: V3::UP,
             },
+            through: [None, None],
             orbit: 0,
             sounds: Vec::new(),
             toasts: Vec::new(),
@@ -692,6 +697,7 @@ fn camera(r: &Run) -> Camera {
             fwd,
             fov: FOV,
             far: FAR,
+            up: V3::UP,
         };
     }
     let (back, side, fov) = if r.aiming {
@@ -716,7 +722,33 @@ fn camera(r: &Run) -> Camera {
         fwd,
         fov,
         far: FAR,
+        up: V3::UP,
     }
+}
+
+/// The view into each open portal: a camera standing where your eye would
+/// be if the other portal's wall were this one, looking out of it, with
+/// everything behind the other portal's face cut away. None for a portal
+/// whose partner is shut or whose face is turned from you.
+fn through_cameras(r: &Run, cam: &Camera) -> [Option<(Camera, [i32; 4])>; 2] {
+    let [Some(a), Some(b)] = r.portals else {
+        return [None, None];
+    };
+    let one = |from: &Portal, to: &Portal| {
+        if cam.eye.sub(from.at).dot(from.n) <= 0 {
+            return None;
+        }
+        let view = Camera {
+            eye: portal::carry_point(from, to, cam.eye),
+            fwd: portal::carry_dir(from, to, cam.fwd),
+            up: portal::carry_dir(from, to, V3::UP),
+            ..*cam
+        };
+        let n = to.n;
+        // cut away the wall behind it and its own rim
+        Some((view, [n.x, n.y, n.z, n.dot(to.at) + ONE / 20]))
+    };
+    [one(&a, &b), one(&b, &a)]
 }
 
 /// The crosshair's ray: from the camera, started level with the operative
@@ -729,9 +761,34 @@ fn aim_ray(r: &Run) -> (V3, V3) {
 }
 
 /// What the crosshair is on: the nearest soldier before any wall, and the
-/// point it meets.
+/// point it meets. A ray that meets an open portal's opening first goes on
+/// out of the other portal, once.
 fn aimed(r: &Run, range: i32) -> (Option<usize>, V3, bool) {
     let (o, d) = aim_ray(r);
+    let (who, at, head, _) = trace(r, o, d, range);
+    (who, at, head)
+}
+
+/// `aimed` from any ray, also giving where it went through a portal: the
+/// point it went in and the point it came out.
+fn trace(r: &Run, o: V3, d: V3, range: i32) -> (Option<usize>, V3, bool, Option<(V3, V3)>) {
+    let (who, at, head) = straight_shot(r, o, d, range);
+    let near = o.dist(at);
+    if let [Some(a), Some(b)] = r.portals {
+        for (from, to) in [(a, b), (b, a)] {
+            if let Some(t) = from.crossing(o, d, near) {
+                let hole = o.add(d.scale(t));
+                let out = portal::carry_point(&from, &to, hole).add(to.n.scale(ONE / 20));
+                let dir = portal::carry_dir(&from, &to, d);
+                let (who, at, head) = straight_shot(r, out, dir, range - t);
+                return (who, at, head, Some((hole, out)));
+            }
+        }
+    }
+    (who, at, head, None)
+}
+
+fn straight_shot(r: &Run, o: V3, d: V3, range: i32) -> (Option<usize>, V3, bool) {
     let wall = r
         .world
         .ray(o, d, range, |s| s.opaque)
@@ -1465,16 +1522,28 @@ fn shoot(r: &mut Run, sounds: &mut Vec<&'static str>) {
     r.ammo[k] -= 1;
     r.fire_cd = FIRE_COOLDOWN;
     r.p.boxed = false;
-    let (who, at, head) = aimed(r, PISTOL_RANGE);
+    let (o, d) = aim_ray(r);
+    let (who, at, head, hop) = trace(r, o, d, PISTOL_RANGE);
     let gun =
         r.p.pos
             .add(v3(0, ratio(13, 10), 0))
             .add(right_of(r.p.yaw).scale(ratio(3, 10)));
+    let (to, from) = match hop {
+        Some((hole, out)) => (hole, Some(out)),
+        None => (at, None),
+    };
     r.tracers.push(Tracer {
         from: gun,
-        to: at,
+        to,
         t: TRACER_TIME,
     });
+    if let Some(out) = from {
+        r.tracers.push(Tracer {
+            from: out,
+            to: at,
+            t: TRACER_TIME,
+        });
+    }
     if r.lethal {
         sounds.push("lethal");
         r.cloak = false;
@@ -2342,7 +2411,9 @@ impl Game {
                 fwd: v3(0, int(4), 0).sub(eye).norm(),
                 fov: FOV,
                 far: FAR,
+                up: V3::UP,
             };
+            self.through = [None, None];
             let (v, runs) = b.finish();
             self.dynamic_vals = v;
             self.dynamic_runs = runs;
@@ -2350,6 +2421,7 @@ impl Game {
         };
         let m = &self.missions[r.m];
         self.cam = camera(r);
+        self.through = through_cameras(r, &self.cam);
         // the operative
         let u = &self.uniforms[r.uniform.min(self.uniforms.len() - 1)];
         let me = Look {
@@ -2485,7 +2557,7 @@ impl Game {
         for (k, pt) in r.portals.iter().enumerate() {
             if let Some(pt) = pt {
                 let rgb = p.get(if k == 0 { "portal_a" } else { "portal_b" });
-                draw::portal(&mut b, pt.at, pt.n, rgb, PORTAL_W, PORTAL_H, ONE);
+                draw::portal(&mut b, k, pt.at, pt.n, rgb, PORTAL_W, PORTAL_H, ONE);
             }
         }
         // the prisoner and the case
@@ -2579,11 +2651,22 @@ impl Game {
     }
 
     pub fn draws(&self) -> Vec<u32> {
-        render::draws(&self.scenery_runs, &self.dynamic_runs)
+        let through = [self.through[0].is_some(), self.through[1].is_some()];
+        render::draws(&self.scenery_runs, &self.dynamic_runs, through)
     }
 
+    /// The main view, then the view through each portal (zeros when there
+    /// is none; no draw names it then).
     pub fn mats(&self) -> Vec<i32> {
-        self.cam.mat_values(self.aspect()).to_vec()
+        let aspect = self.aspect();
+        let mut out = self.cam.mat_values(aspect, render::NO_CLIP).to_vec();
+        for t in &self.through {
+            match t {
+                Some((cam, clip)) => out.extend_from_slice(&cam.mat_values(aspect, *clip)),
+                None => out.extend_from_slice(&[0; render::MAT_VALUES]),
+            }
+        }
+        out
     }
 
     pub fn mesh(&self, id: u32) -> Vec<i32> {
@@ -2640,6 +2723,8 @@ impl Game {
             "locker"
         } else if r.p.boxed {
             "box"
+        } else if r.riding {
+            "riding"
         } else {
             match r.p.stance {
                 Stance::Stand => "stand",
@@ -2893,7 +2978,12 @@ pub fn numbers() -> String {
             "attributes": [i("iA", 4, 0), i("iB", 4, 4), i("iC", 4, 8), i("iD", 4, 12)]
         },
         "buffers": { "scenery": render::BUF_SCENERY, "dynamic": render::BUF_DYNAMIC },
-        "passes": { "solid": render::PASS_SOLID, "ink": render::PASS_INK, "tint": render::PASS_TINT },
+        "passes": {
+            "solid": render::PASS_SOLID, "ink": render::PASS_INK, "tint": render::PASS_TINT,
+            "mark": render::PASS_MARK, "seal": render::PASS_SEAL, "unseal": render::PASS_UNSEAL
+        },
+        "eye_values": 3,
+        "stencil_mask": 255,
         "draw_values": render::DRAW_VALUES,
         "vertex_values": mesh::VERTEX_VALUES,
         "mat_values": render::MAT_VALUES,
@@ -3207,6 +3297,55 @@ mod tests {
         assert!(r(&mut g).soldiers.iter().any(|s| s.target && s.marked));
         // asked again, he has nothing more
         assert!(!g.hud_json().contains("use_talk_mule"));
+    }
+
+    #[test]
+    fn a_dart_fired_into_one_portal_comes_out_of_the_other_and_hits() {
+        let mut g = start(0);
+        only(&mut g, &[8]);
+        let mut t = 0;
+        let s = r(&mut g).soldiers[8].pos;
+        r(&mut g).soldiers[8].wait = int(100);
+        // the exit: 5 m west of him, facing east at him
+        let b = Portal {
+            at: s.add(v3(-int(5), ratio(13, 10), 0)),
+            n: v3(ONE, 0, 0),
+        };
+        // the way in: far off, square in front of you as you look north
+        let me = v3(s.x - int(30), 0, s.z + int(30));
+        r(&mut g).p.pos = me;
+        r(&mut g).p.stance = Stance::Stand;
+        r(&mut g).cam_yaw = 0;
+        r(&mut g).cam_pitch = 0;
+        let (o, d) = aim_ray(r(&mut g));
+        let a = Portal {
+            at: v3(o.x, o.y, o.z - int(6)),
+            n: v3(0, 0, ONE),
+        };
+        r(&mut g).portals = [Some(a), Some(b)];
+        // he is nowhere near the line from you to the portal
+        assert!(straight_shot(r(&mut g), o, d, PISTOL_RANGE).0.is_none());
+        let (who, _, _, hop) = trace(r(&mut g), o, d, PISTOL_RANGE);
+        assert_eq!(who, Some(8), "through the portal");
+        assert!(hop.is_some());
+        run(&mut g, AIM | FIRE, 1, &mut t);
+        assert!(
+            matches!(r(&mut g).soldiers[8].life, Life::Dart(_) | Life::Asleep(_)),
+            "{:?}",
+            r(&mut g).soldiers[8].life
+        );
+        assert_eq!(
+            r(&mut g).tracers.len(),
+            2,
+            "a tracer into one, a tracer out of the other"
+        );
+        // and you can see through it: a camera behind b looking east
+        g.frame();
+        let (view, _) = g.through[0].expect("a view through a");
+        assert!(view.eye.x < b.at.x, "{:?}", view.eye);
+        assert!(view.fwd.x > ONE / 2, "{:?}", view.fwd);
+        assert!(g.through[1].is_none(), "b faces away from you");
+        assert_eq!(g.mats().len(), render::MAT_VALUES * render::VIEWS);
     }
 
     #[test]

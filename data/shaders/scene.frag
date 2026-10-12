@@ -1,8 +1,9 @@
 #version 300 es
 precision highp float;
-// Three passes (the core says which): 0 solid, lit in flat bands like the
+// Passes (the core says which): 0 solid, lit in flat bands like the
 // TikZ art's fills; 1 ink, the plum outline; 2 tint, see-through shapes
-// (sight cones, the landing zone's glow).
+// (sight cones, the landing zone's glow); 4 a portal's window cleared to
+// the sky (3 and 5 write no colour).
 // Styles (crates/core/src/world.rs): 0 plain, 1 concrete panels,
 // 2 corrugated metal, 3 camouflage, 4 glow, 5 planks, 6 ground,
 // 7 active camo, 8 portal swirl.
@@ -13,6 +14,8 @@ in vec3 vLocal;
 in vec3 vLocalNormal;
 in vec3 vSize;
 uniform vec3 uEye;
+// the view through a portal cuts away what lies behind the far portal's face
+uniform vec4 uClip;
 uniform vec3 uLightDir;
 uniform vec3 uSky;
 uniform vec3 uFog;
@@ -37,9 +40,15 @@ float blotch(vec3 p) {
 }
 
 void main() {
+  if (dot(uClip.xyz, vWorld) < uClip.w) discard;
   float d = length(vWorld - uEye);
   float f = clamp((d - uFogRange.x) / (uFogRange.y - uFogRange.x), 0.0, 1.0);
   f = f * f * (3.0 - 2.0 * f);
+  if (uPass > 3.5 && uPass < 4.5) {
+    // a portal's window, cleared to the sky before the view through it
+    outColor = vec4(uSky, 1.0);
+    return;
+  }
   if (uPass > 1.5) {
     outColor = vec4(mix(vColor.rgb, uFog, f), vColor.a);
     return;

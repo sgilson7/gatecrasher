@@ -20,15 +20,16 @@
 - MGS3 camo index from four uniforms against five grounds, plus stance, movement, bushes, grass and shade; active camo on a battery.
 - Bushes, tall grass, lockers, a cardboard box; bodies carried and hidden in bushes and lockers.
 - Silenced pistol with tranquilliser rounds (silent; five-minute sleep, then a radio call; nearby soldiers who see him fall go to wake him) and lethal rounds (loud; a body). No respawning.
-- CQC: grab, interrogate, choke, kill, throw; a disarming throw from the front.
-- Portals on large walls and floors with momentum through them; only elites see them, and they shut what they see.
-- The Memphis Mule: follows, whistle, ram, tie and interrogate, sniff-marking, never detected.
+- CQC: grab, interrogate, choke, kill, throw; a disarming throw from the front. Crouch-walking up behind a soldier is silent and unfelt (after Sam's first play, N16).
+- MGS V hold-ups: aim at a soldier close up and he drops his rifle and raises his hands; E interrogates; a pinned soldier on the ground talks too.
+- Portals on large walls and floors with momentum through them; with both open, each shows the view out of the other (stencil windows, one level deep) and shots pass through; only elites see them, and they shut what they see.
+- The Memphis Mule: follows, whistle, ram, tie and interrogate (E), carries Vance, can be ridden (fast and loud), sniff-marking, never detected. Soldiers kick sleeping buddies awake.
 - Fulton recruits to Graceland, kept in local storage, with unit levels that improve the next mission's kit.
 - TikZ art in the Sam_Comm_final look: title, failed, complete, Graceland, three mission cards, the mule (`tools/art.py`).
 
 ## Not done, or done differently
 
-See `SECOND-ORDER.md` for each: no view through the portals (N5), no reload (N6), Graceland is a screen (N4), desktop only (PLAN 10).
+See `SECOND-ORDER.md` for each: no reload (N6), Graceland is a screen (N4), desktop only (PLAN 10), soldiers do not see through portals (N21), a held-up soldier cannot be ordered to lie down (N18).
 
 ## Commands run, and results
 
@@ -40,7 +41,16 @@ See `SECOND-ORDER.md` for each: no view through the portals (N5), no reload (N6)
 | website `make check`, `make packet`, `make gate` | 64 pages, no findings; 44 routes clean; gate passed in three engines |
 | website `make deploy`, then `make gate-live` | build 73a948cb pushed; `/projects/gatecrasher/` live; gate passed |
 
+## Second round (Sam's first play)
+
+| Command | Result |
+| --- | --- |
+| `./scripts/check.sh` (local, after sneaking, hold-ups, kicks, mule interrogation, Vance on the mule, riding) | BUILDER CHECK PASSED: 84 core tests, 11 boundary tests, browser check in three engines; pushed as `dacdf6e` |
+| `./scripts/check.sh` (local, after portal views and shots through portals) | BUILDER CHECK PASSED: 88 core tests, 11 boundary tests, browser check in three engines |
+| Headless Chromium screenshots | portal window shows the far side (a palm tree in front of the blue portal, in the orange window); riding shows camo −60 % |
+
 ## Next
 
-1. Play it (SECOND-ORDER T1): every feel number is a guess, in `crates/core/src/balance.rs`.
-2. The name (T2).
+1. Play the portal windows on a real GPU (T3).
+2. Play it (SECOND-ORDER T1): every feel number is a guess, in `crates/core/src/balance.rs`.
+3. The name (T2).

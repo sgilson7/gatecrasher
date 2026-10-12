@@ -8,7 +8,7 @@ use crate::content::{Palette, Rgb};
 use crate::fx::{self, deg, int, ratio, ONE};
 use crate::geom::{v3, Affine, V3};
 use crate::mesh::Mesh;
-use crate::render::{boxed, spanning, Batch, LAYER_INKED, LAYER_PLAIN};
+use crate::render::{boxed, spanning, Batch, LAYER_HOLE, LAYER_INKED, LAYER_PLAIN};
 use crate::rng::Rng;
 use crate::world::{self, World, STYLE_GLOW, STYLE_GROUND, STYLE_PLAIN, STYLE_PORTAL};
 
@@ -532,7 +532,10 @@ pub fn mule(b: &mut Batch, pos: V3, yaw: i32, walk: i32, moving: bool, charging:
 }
 
 /// A portal: a glowing oval rim and its dark swirl.
-pub fn portal(b: &mut Batch, at: V3, n: V3, rim: Rgb, w: i32, h: i32, open: i32) {
+/// A portal: a glowing rim, and the opening (`k`'s own layer: a swirl, or a
+/// window when the page draws the view through it).
+#[allow(clippy::too_many_arguments)]
+pub fn portal(b: &mut Batch, k: usize, at: V3, n: V3, rim: Rgb, w: i32, h: i32, open: i32) {
     let rot = if n.y > 0 {
         Affine::IDENTITY
     } else if n.z != 0 {
@@ -554,7 +557,7 @@ pub fn portal(b: &mut Batch, at: V3, n: V3, rim: Rgb, w: i32, h: i32, open: i32)
     let inner = base
         .then(&Affine::translate(v3(0, ratio(2, 100), 0)))
         .then(&Affine::scale(v3(sw * 4 / 5, ratio(4, 100), sh * 4 / 5)));
-    b.push(LAYER_PLAIN, Mesh::Cyl, &inner, rim, STYLE_PORTAL);
+    b.push(LAYER_HOLE + k, Mesh::Cyl, &inner, rim, STYLE_PORTAL);
 }
 
 /// A sight cone on the ground: thin slices out to wherever a wall stops it.

@@ -5,7 +5,9 @@
 //
 // Two instance buffers: the zone (uploaded when the core's scenery version
 // changes) and the moving things (each frame). The core lists the draws;
-// this file sets the GL state each pass asks for.
+// this file sets the GL state each pass asks for. Each draw names a view
+// (the main camera or the camera through a portal) and a stencil value: 0
+// draws everywhere, any other draws only where that portal's window is.
 
 function compile(gl, type, source) {
   const shader = gl.createShader(type);
@@ -30,7 +32,7 @@ function link(gl, vertexSource, fragmentSource) {
 
 // Returns null when the browser has no WebGL 2; the page then says so.
 export function makeRenderer(canvas, N, shaders, meshData) {
-  const gl = canvas.getContext("webgl2", { antialias: true, powerPreference: "high-performance" });
+  const gl = canvas.getContext("webgl2", { antialias: true, stencil: true, powerPreference: "high-performance" });
   if (!gl) return null;
 
   const info = gl.getExtension("WEBGL_debug_renderer_info");
@@ -64,14 +66,20 @@ export function makeRenderer(canvas, N, shaders, meshData) {
   const sceneUniforms = N.uniforms.map(([u, size]) => ({ loc: uniform(u), size }));
   const uVP = uniform("uVP");
   const uEye = uniform("uEye");
+  const uClip = uniform("uClip");
   const uPass = uniform("uPass");
 
   const buffers = [gl.createBuffer(), gl.createBuffer()];
   const P = N.passes;
   let clear = [0, 0, 0];
 
-  function enterPass(pass) {
+  function enterPass(pass, stencil) {
     gl.uniform1f(uPass, pass);
+    gl.colorMask(true, true, true, true);
+    gl.depthFunc(gl.LESS);
+    gl.depthRange(0, 1);
+    gl.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
+    gl.stencilFunc(stencil === 0 ? gl.ALWAYS : gl.EQUAL, stencil, N.stencil_mask);
     if (pass === P.tint) {
       gl.disable(gl.CULL_FACE);
       gl.enable(gl.BLEND);
@@ -82,6 +90,31 @@ export function makeRenderer(canvas, N, shaders, meshData) {
     gl.depthMask(true);
     gl.enable(gl.CULL_FACE);
     gl.cullFace(pass === P.ink ? gl.FRONT : gl.BACK);
+    if (pass === P.mark) {
+      // the window's visible pixels take the stencil value; nothing is drawn
+      gl.colorMask(false, false, false, false);
+      gl.depthMask(false);
+      gl.depthFunc(gl.LEQUAL);
+      gl.stencilFunc(gl.ALWAYS, stencil, N.stencil_mask);
+      gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE);
+    } else if (pass === P.seal) {
+      // inside the window: sky, at the far plane
+      gl.depthFunc(gl.ALWAYS);
+      gl.depthRange(1, 1);
+    } else if (pass === P.unseal) {
+      // the window's own depth back
+      gl.colorMask(false, false, false, false);
+      gl.depthFunc(gl.ALWAYS);
+    }
+  }
+
+  function enterView(mats, view) {
+    const at = view * N.mat_values;
+    const eye = at + N.view_values;
+    const clip = eye + N.eye_values;
+    gl.uniformMatrix4fv(uVP, false, mats.subarray(at, eye));
+    gl.uniform3fv(uEye, mats.subarray(eye, clip));
+    gl.uniform4fv(uClip, mats.subarray(clip, at + N.mat_values));
   }
 
   return {
@@ -109,15 +142,23 @@ export function makeRenderer(canvas, N, shaders, meshData) {
       const [r, g, b] = clear;
       gl.clearColor(r, g, b, 1);
       gl.depthMask(true);
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      gl.uniformMatrix4fv(uVP, false, mats.subarray(0, N.view_values));
-      gl.uniform3fv(uEye, mats.subarray(N.view_values));
+      gl.stencilMask(N.stencil_mask);
+      gl.clearStencil(0);
+      gl.enable(gl.STENCIL_TEST);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
       let pass = -1;
+      let view = -1;
+      let mark = -1;
       for (let i = 0; i < draws.length; i += N.draw_values) {
-        const [buffer, meshId, byteOffset, count, drawPass] = draws.subarray(i, i + N.draw_values);
-        if (drawPass !== pass) {
-          enterPass(drawPass);
+        const [buffer, meshId, byteOffset, count, drawPass, drawView, stencil] = draws.subarray(i, i + N.draw_values);
+        if (drawPass !== pass || stencil !== mark) {
+          enterPass(drawPass, stencil);
           pass = drawPass;
+          mark = stencil;
+        }
+        if (drawView !== view) {
+          enterView(mats, drawView);
+          view = drawView;
         }
         const mesh = meshes[meshId];
         gl.bindBuffer(gl.ARRAY_BUFFER, mesh.buffer);
@@ -131,6 +172,9 @@ export function makeRenderer(canvas, N, shaders, meshData) {
         gl.drawArraysInstanced(gl.TRIANGLES, 0, mesh.vertices, count);
       }
       gl.depthMask(true);
+      gl.colorMask(true, true, true, true);
+      gl.depthRange(0, 1);
+      gl.depthFunc(gl.LESS);
     },
   };
 }

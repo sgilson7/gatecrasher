@@ -43,6 +43,52 @@ impl Portal {
     pub fn across(&self) -> V3 {
         v3(-self.n.z, 0, self.n.x)
     }
+
+    /// The opening's axes: right, up and out. A floor portal's up is north.
+    pub fn frame(&self) -> (V3, V3, V3) {
+        let up = if self.floor() { v3(0, 0, -ONE) } else { V3::UP };
+        (up.cross(self.n), up, self.n)
+    }
+
+    /// Where a ray from `o` along `d` (unit) passes through the opening,
+    /// going in from the front: the distance along it.
+    pub fn crossing(&self, o: V3, d: V3, max: i32) -> Option<i32> {
+        let dn = d.dot(self.n);
+        if dn >= 0 {
+            return None;
+        }
+        let t = fx::div(self.at.sub(o).dot(self.n), dn);
+        if t < 0 || t > max {
+            return None;
+        }
+        let rel = o.add(d.scale(t)).sub(self.at);
+        let (right, up, _) = self.frame();
+        let (w, h) = if self.floor() {
+            (PORTAL_FLOOR, PORTAL_FLOOR)
+        } else {
+            (PORTAL_W, PORTAL_H)
+        };
+        // the opening is an ellipse
+        let x = fx::div(rel.dot(right), w / 2);
+        let y = fx::div(rel.dot(up), h / 2);
+        (fx::mul(x, x) + fx::mul(y, y) < ONE).then_some(t)
+    }
+}
+
+/// A direction going into `from` comes out of `to` turned so: what points
+/// into `from` points out of `to`, and up stays up for two wall portals.
+pub fn carry_dir(from: &Portal, to: &Portal, d: V3) -> V3 {
+    let (ra, ua, na) = from.frame();
+    let (rb, ub, nb) = to.frame();
+    // half a turn about the up axis between the two
+    rb.scale(-d.dot(ra))
+        .add(ub.scale(d.dot(ua)))
+        .add(nb.scale(-d.dot(na)))
+}
+
+/// Where a point near `from` lands, seen from `to`.
+pub fn carry_point(from: &Portal, to: &Portal, p: V3) -> V3 {
+    to.at.add(carry_dir(from, to, p.sub(from.at)))
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -262,6 +308,65 @@ mod tests {
         // facing east now: heading 270°
         assert!(fx::wrap(e.turn - deg(270)).abs() < deg(1), "{}", e.turn);
         assert!(e.pos.x > b.at.x);
+    }
+
+    #[test]
+    fn what_goes_into_one_portal_comes_out_of_the_other_turned_the_same_way_you_are() {
+        let a = Portal {
+            at: v3(0, int(1), 0),
+            n: v3(0, 0, ONE),
+        };
+        let b = Portal {
+            at: v3(int(20), ratio(12, 10), 0),
+            n: v3(ONE, 0, 0),
+        };
+        // into a is out of b
+        assert_eq!(carry_dir(&a, &b, a.n.neg()), b.n);
+        // the turn matches walking through (heading 0 into a becomes 270°)
+        let e = exit(&a, &b, 0, v3(0, 0, -int(4)), 0);
+        let walk = carry_dir(&a, &b, facing(0, 0));
+        assert_eq!(walk, facing(e.turn, 0), "{walk:?}");
+        assert_eq!(carry_dir(&a, &b, V3::UP), V3::UP);
+        // and is not a mirror: heading west into a (90°) turns 270° to north
+        assert_eq!(carry_dir(&a, &b, v3(-ONE, 0, 0)), v3(0, 0, -ONE));
+        // a point a metre in front of a is a metre behind b
+        let p = carry_point(&a, &b, a.at.add(a.n));
+        assert_eq!(p, b.at.sub(b.n));
+        // floor to floor: falling in comes up out of the other
+        let f = Portal {
+            at: v3(0, ONE / 50, 0),
+            n: V3::UP,
+        };
+        let g = Portal {
+            at: v3(int(9), ONE / 50, 0),
+            n: V3::UP,
+        };
+        assert_eq!(carry_dir(&f, &g, V3::UP.neg()), V3::UP);
+    }
+
+    #[test]
+    fn a_ray_crosses_the_opening_from_the_front_and_misses_it_beside_or_behind() {
+        let a = Portal {
+            at: v3(0, int(1), 0),
+            n: v3(0, 0, ONE),
+        };
+        let north = v3(0, 0, -ONE);
+        assert_eq!(a.crossing(v3(0, int(1), int(5)), north, int(50)), Some(int(5)));
+        assert_eq!(
+            a.crossing(v3(int(2), int(1), int(5)), north, int(50)),
+            None,
+            "beside"
+        );
+        assert_eq!(
+            a.crossing(v3(0, int(1), -int(5)), north.neg(), int(50)),
+            None,
+            "behind"
+        );
+        assert_eq!(
+            a.crossing(v3(0, int(1), int(5)), north, int(3)),
+            None,
+            "out of range"
+        );
     }
 
     #[test]
