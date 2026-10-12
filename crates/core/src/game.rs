@@ -1892,26 +1892,80 @@ fn ride(r: &mut Run, wish: V3, gallop: bool, dt: i32, sounds: &mut Vec<&'static 
     }
 }
 
-fn tie(r: &mut Run, sounds: &mut Vec<&'static str>, toasts: &mut Vec<String>) {
+/// What Y would do right now, for the prompt and for the press.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Tie {
+    Nothing,
+    /// take the soldier off the mule's back
+    Untie,
+    /// take Vance off
+    VanceOff,
+    /// put Vance on
+    Vance,
+    /// tie this soldier on: lying near you, on your shoulder or in your hold
+    Soldier(usize),
+    /// someone to put on, but the mule already carries someone
+    Full,
+    /// someone to put on, and the mule too far: Y calls him over
+    Far,
+}
+
+fn tie_target(r: &Run) -> Tie {
     let me = r.p.pos;
-    // Corporal Vance rides the mule out
-    if r.prisoner == Prisoner::OnMule {
-        if r.mule.pos.dist(me) < MULE_TIE_REACH {
+    let mule_near = r.mule.pos.dist(me) < MULE_TIE_REACH;
+    let free_hands = r.hold.is_none() && r.carry.is_none();
+    if r.prisoner == Prisoner::OnMule && mule_near && free_hands {
+        return Tie::VanceOff;
+    }
+    if r.mule.load.is_some() && mule_near && free_hands {
+        return Tie::Untie;
+    }
+    let who = match (r.hold, r.carry) {
+        (Some((i, _)), _) => Tie::Soldier(i),
+        (_, Some(Carry::Commando)) => Tie::Vance,
+        (_, Some(Carry::Soldier(i))) if r.soldiers[i].life != Life::Dead => Tie::Soldier(i),
+        (_, Some(Carry::Soldier(_))) => Tie::Nothing,
+        _ if r.prisoner == Prisoner::Free && r.prisoner_at.dist(me) < REACH * 2 => Tie::Vance,
+        _ => nearest_soldier(r, me, REACH * 2, |s| lying(s) && s.life != Life::Dead)
+            .map_or(Tie::Nothing, Tie::Soldier),
+    };
+    if who == Tie::Nothing {
+        Tie::Nothing
+    } else if r.mule.load.is_some() || r.prisoner == Prisoner::OnMule {
+        Tie::Full
+    } else if r.mule.pos.dist(me) > MULE_TIE_FAR {
+        Tie::Far
+    } else {
+        who
+    }
+}
+
+fn tie(r: &mut Run, sounds: &mut Vec<&'static str>, toasts: &mut Vec<String>) {
+    match tie_target(r) {
+        Tie::Nothing => toasts.push("@tie_nothing".into()),
+        Tie::Full => toasts.push("@mule_full".into()),
+        Tie::Far => {
+            r.mule.mode = MuleMode::Come;
+            r.mule.goal = None;
+            sounds.push("whistle");
+            toasts.push("@mule_coming".into());
+        }
+        Tie::VanceOff => {
             r.prisoner = Prisoner::Free;
             let at = r.mule.pos.add(right_of(r.mule.yaw).scale(int(1)));
             r.prisoner_at = v3(at.x, r.world.ground(at, RADIUS / 2, r.mule.pos.y + STEP), at.z);
             sounds.push("drop");
         }
-        return;
-    }
-    let vance = r.carry == Some(Carry::Commando)
-        || (r.prisoner == Prisoner::Free && r.prisoner_at.dist(me) < REACH * 2);
-    if vance {
-        if r.mule.load.is_some() {
-            toasts.push("@mule_full".into());
-        } else if r.mule.pos.dist(me) > MULE_TIE_REACH * 2 {
-            toasts.push("@mule_far".into());
-        } else {
+        Tie::Untie => {
+            if let Some(i) = r.mule.load.take() {
+                let at = r.mule.pos.add(right_of(r.mule.yaw).scale(int(1)));
+                let s = &mut r.soldiers[i];
+                s.on_mule = false;
+                s.pos = v3(at.x, r.world.ground(at, RADIUS / 2, r.mule.pos.y + STEP), at.z);
+                sounds.push("drop");
+            }
+        }
+        Tie::Vance => {
             if r.carry == Some(Carry::Commando) {
                 r.carry = None;
             }
@@ -1920,48 +1974,24 @@ fn tie(r: &mut Run, sounds: &mut Vec<&'static str>, toasts: &mut Vec<String>) {
             toasts.push("@vance_on_mule".into());
             sounds.push("tie");
         }
-        return;
-    }
-    if let Some(i) = r.mule.load {
-        if r.mule.pos.dist(me) < MULE_TIE_REACH {
+        Tie::Soldier(i) => {
+            if r.carry == Some(Carry::Soldier(i)) {
+                r.carry = None;
+            }
+            // out of your hold too: he is tied, not asleep
+            knock_out(r, i, Life::Bound);
             let s = &mut r.soldiers[i];
-            s.on_mule = false;
-            s.pos = r.mule.pos.add(right_of(r.mule.yaw).scale(int(1)));
-            s.pos.y = 0;
-            r.mule.load = None;
-            sounds.push("drop");
-        }
-        return;
-    }
-    if let Some(Carry::Soldier(i)) = r.carry {
-        if r.soldiers[i].life != Life::Dead {
-            r.soldiers[i].carried = false;
-            r.carry = None;
+            s.on_mule = true;
+            s.carried = false;
+            s.path.clear();
+            r.mule.load = Some(i);
+            r.mule.talk = 0;
+            r.mule.mode = MuleMode::Follow;
+            toasts.push("@tied_on".into());
+            sounds.push("bray");
+            sounds.push("tie");
         }
     }
-    let Some(i) = nearest_soldier(r, me, REACH * 2, |s| {
-        (lying(s) || s.carried) && s.life != Life::Dead
-    }) else {
-        toasts.push("@tie_nothing".into());
-        return;
-    };
-    if r.prisoner == Prisoner::OnMule {
-        toasts.push("@mule_full".into());
-        return;
-    }
-    if r.mule.pos.dist(r.soldiers[i].pos) > MULE_TIE_REACH * 2 {
-        toasts.push("@mule_far".into());
-        return;
-    }
-    let s = &mut r.soldiers[i];
-    s.life = Life::Bound;
-    s.on_mule = true;
-    s.carried = false;
-    r.mule.load = Some(i);
-    r.mule.talk = 0;
-    r.mule.mode = MuleMode::Follow;
-    sounds.push("bray");
-    sounds.push("tie");
 }
 
 // --- the soldiers' tick ------------------------------------------------------------------
@@ -2837,6 +2867,15 @@ impl Game {
         if r.mule.talk > 0 {
             prompts.push("hold_talking");
         }
+        prompts.push(match tie_target(r) {
+            _ if r.riding || r.p.locker.is_some() => "",
+            Tie::Nothing | Tie::Full => "",
+            Tie::Untie => "untie",
+            Tie::VanceOff => "untie_vance",
+            Tie::Vance => "tie_vance",
+            Tie::Soldier(_) => "tie_ready",
+            Tie::Far => "tie_far",
+        });
         if r.riding {
             prompts.push("riding");
         } else if r.mule.pos.dist(r.p.pos) < MULE_MOUNT_REACH && r.hold.is_none() && r.carry.is_none() {
@@ -3346,6 +3385,77 @@ mod tests {
         assert!(view.fwd.x > ONE / 2, "{:?}", view.fwd);
         assert!(g.through[1].is_none(), "b faces away from you");
         assert_eq!(g.mats().len(), render::MAT_VALUES * render::VIEWS);
+    }
+
+    /// Soldier 8 tranquillised and asleep at your feet, the mule beside you.
+    fn sleeper_by_the_mule(g: &mut Game) -> usize {
+        only(g, &[8]);
+        let s = r(g).soldiers[8].pos;
+        r(g).soldiers[8].life = Life::Asleep(SLEEP_TIME);
+        r(g).p.pos = s.add(v3(ONE, 0, 0));
+        r(g).mule.pos = s.add(v3(int(3), 0, int(2)));
+        8
+    }
+
+    #[test]
+    fn standing_over_a_sleeper_with_the_mule_near_y_ties_him_on_and_says_so() {
+        let mut g = start(0);
+        let i = sleeper_by_the_mule(&mut g);
+        let mut t = 0;
+        run(&mut g, 0, 2, &mut t);
+        assert!(g.hud_json().contains("\"tie_ready\""), "{}", g.hud_json());
+        press(&mut g, TIE, &mut t);
+        assert_eq!(r(&mut g).mule.load, Some(i));
+        assert!(g.hud_json().contains("use_talk_mule"));
+        assert!(g.hud_json().contains("\"untie\""), "{}", g.hud_json());
+    }
+
+    #[test]
+    fn a_soldier_on_your_shoulder_goes_onto_the_mule() {
+        let mut g = start(0);
+        let i = sleeper_by_the_mule(&mut g);
+        let mut t = 0;
+        press(&mut g, USE, &mut t);
+        assert_eq!(r(&mut g).carry, Some(Carry::Soldier(i)));
+        assert!(g.hud_json().contains("\"tie_ready\""), "{}", g.hud_json());
+        press(&mut g, TIE, &mut t);
+        let load = r(&mut g).mule.load;
+        assert_eq!(load, Some(i), "{:?}", g.toasts);
+        assert!(r(&mut g).carry.is_none());
+    }
+
+    #[test]
+    fn a_soldier_in_a_hold_goes_onto_the_mule() {
+        let mut g = start(0);
+        only(&mut g, &[8]);
+        r(&mut g).soldiers[8].wait = int(100);
+        let s = r(&mut g).soldiers[8].pos;
+        let yaw = r(&mut g).soldiers[8].yaw;
+        let behind = s.sub(facing(yaw, 0).scale(ratio(12, 10)));
+        r(&mut g).p.pos = v3(behind.x, 0, behind.z);
+        r(&mut g).p.stance = Stance::Crouch;
+        r(&mut g).mule.pos = s.add(v3(int(3), 0, 0));
+        let mut t = 0;
+        press(&mut g, CQC, &mut t);
+        assert!(r(&mut g).hold.is_some());
+        assert!(g.hud_json().contains("\"tie_ready\""), "{}", g.hud_json());
+        press(&mut g, TIE, &mut t);
+        let load = r(&mut g).mule.load;
+        assert_eq!(load, Some(8), "{:?}", g.toasts);
+        assert!(r(&mut g).hold.is_none());
+    }
+
+    #[test]
+    fn with_the_mule_far_y_calls_him_over_and_the_prompt_says_so() {
+        let mut g = start(0);
+        let i = sleeper_by_the_mule(&mut g);
+        let s = r(&mut g).soldiers[i].pos;
+        r(&mut g).mule.pos = s.add(v3(int(25), 0, 0));
+        let mut t = 0;
+        run(&mut g, 0, 2, &mut t);
+        assert!(g.hud_json().contains("\"tie_far\""), "{}", g.hud_json());
+        press(&mut g, TIE, &mut t);
+        assert_eq!(r(&mut g).mule.mode, MuleMode::Come);
     }
 
     #[test]

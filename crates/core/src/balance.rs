@@ -213,6 +213,8 @@ pub const MULE_SNIFF: i32 = int(24);
 pub const MULE_SNIFF_EVERY: i32 = int(1);
 pub const MULE_RAM_RANGE: i32 = int(45);
 pub const MULE_TIE_REACH: i32 = int(5);
+/// Tying a soldier on: the mule must be this near you, or Y calls him over.
+pub const MULE_TIE_FAR: i32 = int(10);
 /// Riding him: close enough to climb on, the trot, where you sit, the
 /// hoofbeats' rings, and the camo index a rider has (a man on a mule is
 /// seen from far off: the brief says very noticeable).
