@@ -47,6 +47,7 @@ See `SECOND-ORDER.md` for each: no reload (N6), Graceland is a screen (N4), desk
 | --- | --- |
 | `./scripts/check.sh` (local, after sneaking, hold-ups, kicks, mule interrogation, Vance on the mule, riding) | BUILDER CHECK PASSED: 84 core tests, 11 boundary tests, browser check in three engines; pushed as `dacdf6e` |
 | `./scripts/check.sh` (local, after portal views and shots through portals) | BUILDER CHECK PASSED: 88 core tests, 11 boundary tests, browser check in three engines |
+| GitHub Actions on `39d0f4f`, then `tests/browser/check.py` against the live site | check passed and deployed (1 min 57 s); BROWSER CHECK PASSED in three engines live |
 | Headless Chromium screenshots | portal window shows the far side (a palm tree in front of the blue portal, in the orange window); riding shows camo −60 % |
 
 ## Next
