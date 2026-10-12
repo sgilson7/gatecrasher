@@ -53,6 +53,14 @@ See `SECOND-ORDER.md` for each: no reload (N6), Graceland is a screen (N4), desk
 | website: commit `6d3e9f2` (only `content/projects/gatecrasher.md`), then `make check`, `make packet`, the gate, `publish.sh` and the live gate, all from a clean git worktree | build a9a6d21b live; gate passed live. Built from a worktree because the website folder held another session's uncommitted Long Time Comin' draft, which a deploy from the folder would have published; that draft was left untouched and unpublished |
 | Headless Chromium screenshots | portal window shows the far side (a palm tree in front of the blue portal, in the orange window); riding shows camo −60 % |
 
+## Third round
+
+| Command | Result |
+| --- | --- |
+| `./scripts/check.sh` (local, after varied interrogation lines N28, 8 tranquilliser rounds N29, the score N30, the dive N31) | BUILDER CHECK PASSED: 97 core tests, 11 boundary tests, browser check in three engines |
+| GitHub Actions on `15fbcac`, then `tests/browser/check.py` against the live site | check passed and deployed; BROWSER CHECK PASSED in three engines live |
+| Headless Chromium screenshot mid-dive | the operative flat in the air, arms ahead, stance still "Standing"; HUD shows "Score 0" and "Tranq 8" |
+
 ## Next
 
 1. Play the portal windows on a real GPU (T3).
