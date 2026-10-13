@@ -68,6 +68,8 @@ See `SECOND-ORDER.md` for each: no reload (N6), Graceland is a screen (N4), desk
 | --- | --- |
 | `./scripts/check.sh` (local, after the Deterrence mission N32-N33, per-soldier last known position N34, shorter reflex and the grace N35, the dive tackle N36, climbing N37) | BUILDER CHECK PASSED: 106 core tests, 11 boundary tests, browser check in three engines |
 | 14 planted breaks (`breaks4.py` in the session scratchpad) | each failed its test, each restored |
+| GitHub Actions on `9f284c1`, then `tests/browser/check.py` against the live site | check passed and deployed; BROWSER CHECK PASSED in three engines live |
+| website: commit `3b868a3` (only `content/projects/gatecrasher.md`), built in a worktree at the commit before `6081eec` with only that commit added, then check, packet, gate, `publish.sh`, live gate | live; gate passed. The website folder held another session's committed but unpublished Packet Alley change (`6081eec`) and the live site had two newer publishes than the folder's Pages copy; the worktree build was compared with the live site file by file (build hashes masked) and differed only in the Gatecrasher page, so nothing of the other session's went out |
 | Headless Chromium: Deterrence | mission card and list show four missions; the mech stands in the yard with the four charge sites marked; on the deck the reactor, fins, railgun and deck crew; charges set at each site, then set off from outside the west wall: fire and smoke over the wall, Alert, "Hold out: the helicopter lands in 70 s" |
 
 ## Next
