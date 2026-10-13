@@ -14,8 +14,9 @@
 
 - Third person, over the right shoulder, with a camera that pulls in front of walls; aiming zooms in.
 - One zone, a quarter of an island outpost (`world.rs`), used by all three missions.
-- Three missions with different objectives, targets, soldiers, starts and landing zones (`data/missions.json`): rescue Corporal Grace (held in the warehouse cage, not the cell block), eliminate Colonel Varga (one of three red berets), recover the Gate Lens case (on the comms deck, reachable only by portal). Escape to the landing zone ends each.
+- Four missions with different objectives, targets, soldiers, starts and landing zones (`data/missions.json`): rescue Corporal Grace (held in the warehouse cage, not the cell block), eliminate Colonel Varga (one of three red berets), recover the Gate Lens case (on the comms deck, reachable only by portal). Escape to the landing zone ends each. The fourth, Deterrence: climb the unpiloted Deterrence Unit in the yard, set four charges, set them off from 70 m, hold out 75 s for the helicopter.
 - Nothing about where or who is known at the start; interrogation (CQC hold, or tied to the mule) reveals it. Soldiers who know nothing mark their neighbours.
+- Climbing: vault onto, vault over on the move, leap and hang from ledges up to 2.6 m, shimmy, climb up, let go. The sprint dive leaves the ground and knocks a soldier down for 4 s.
 - MGS V detection: drawn sight cones, an awareness meter with suspicious, investigate and spotted stages, hearing by gait and ground, reflex mode, then alert, evasion and caution. One hit kills.
 - MGS3 camo index from four uniforms against five grounds, plus stance, movement, bushes, grass and shade; active camo on a battery.
 - Bushes, tall grass, lockers, a cardboard box; bodies carried and hidden in bushes and lockers.
@@ -61,8 +62,16 @@ See `SECOND-ORDER.md` for each: no reload (N6), Graceland is a screen (N4), desk
 | GitHub Actions on `15fbcac`, then `tests/browser/check.py` against the live site | check passed and deployed; BROWSER CHECK PASSED in three engines live |
 | Headless Chromium screenshot mid-dive | the operative flat in the air, arms ahead, stance still "Standing"; HUD shows "Score 0" and "Tranq 8" |
 
+## Fourth round
+
+| Command | Result |
+| --- | --- |
+| `./scripts/check.sh` (local, after the Deterrence mission N32-N33, per-soldier last known position N34, shorter reflex and the grace N35, the dive tackle N36, climbing N37) | BUILDER CHECK PASSED: 106 core tests, 11 boundary tests, browser check in three engines |
+| 14 planted breaks (`breaks4.py` in the session scratchpad) | each failed its test, each restored |
+| Headless Chromium: Deterrence | mission card and list show four missions; the mech stands in the yard with the four charge sites marked; on the deck the reactor, fins, railgun and deck crew; charges set at each site, then set off from outside the west wall: fire and smoke over the wall, Alert, "Hold out: the helicopter lands in 70 s" |
+
 ## Next
 
-1. Play the portal windows on a real GPU (T3).
+1. Play Deterrence (T4), and the portal windows on a real GPU (T3).
 2. Play it (SECOND-ORDER T1): every feel number is a guess, in `crates/core/src/balance.rs`.
 3. The name (T2).

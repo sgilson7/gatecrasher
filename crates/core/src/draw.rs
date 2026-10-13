@@ -45,6 +45,10 @@ pub enum Pose {
     Kick {
         t: i32,
     },
+    /// hanging from a ledge by both hands, legs swinging as she shimmies
+    Hang {
+        walk: i32,
+    },
     /// in the air in a dive out of a sprint, `t` after leaving the ground:
     /// tipping from a run's lean to flat, arms out ahead
     Dive {
@@ -285,6 +289,9 @@ pub fn person(b: &mut Batch, pos: V3, yaw: i32, pose: Pose, look: &Look) {
             fx::QUARTER
         } else if matches!(pose, Pose::HandsUp) {
             fx::HALF - deg(12)
+        } else if matches!(pose, Pose::Hang { .. }) {
+            // both hands on the ledge above her head
+            fx::HALF - deg(8)
         } else if matches!(pose, Pose::Dive { .. }) {
             // reaching ahead, over the head, as she flies
             fx::HALF - deg(20)
@@ -649,6 +656,136 @@ pub fn balloon(b: &mut Batch, top: V3, bottom: V3, rgb: Rgb) {
             [ONE * 9 / 10; 3],
             0,
         );
+    }
+}
+
+/// A charge stuck to the mech, its light blinking.
+pub fn charge(b: &mut Batch, at: V3, blink: bool, rgb: Rgb) {
+    b.push(
+        LAYER_INKED,
+        Mesh::Cube,
+        &boxed(
+            at.add(v3(0, ratio(1, 10), 0)),
+            v3(ratio(4, 10), ratio(2, 10), ratio(3, 10)),
+        ),
+        rgb,
+        0,
+    );
+    if blink {
+        b.push(
+            LAYER_PLAIN,
+            Mesh::Sphere,
+            &boxed(
+                at.add(v3(0, ratio(25, 100), 0)),
+                v3(ratio(12, 100), ratio(12, 100), ratio(12, 100)),
+            ),
+            rgb,
+            STYLE_GLOW,
+        );
+    }
+}
+
+/// A charge going off `t` seconds ago: a fireball that swells for two
+/// seconds, then a fire that flickers on.
+pub fn blast(b: &mut Batch, at: V3, t: i32, fire: Rgb, smoke: Rgb) {
+    let swell = ONE * 2;
+    if t < swell {
+        let k = fx::div(t, swell);
+        let r = fx::mul(int(11), k) + ONE;
+        b.push(
+            LAYER_PLAIN,
+            Mesh::Sphere,
+            &boxed(at, v3(r, r, r)),
+            fire,
+            STYLE_GLOW,
+        );
+    }
+    let flick = fx::sin((fx::mul(t, int(9)) * (fx::TURN / ONE)) & (fx::TURN - 1));
+    let r = int(2) + fx::mul(ratio(5, 10), flick);
+    b.push(
+        LAYER_PLAIN,
+        Mesh::Sphere,
+        &boxed(at.add(v3(0, ONE, 0)), v3(r, r * 3 / 2, r)),
+        fire,
+        STYLE_GLOW,
+    );
+    // smoke climbing out of it
+    for k in 0..3 {
+        let rise = (t / 2 + int(k * 4)) % int(12);
+        let r = int(2) + rise / 4;
+        b.push(
+            LAYER_INKED,
+            Mesh::Sphere,
+            &boxed(at.add(v3(0, int(3) + rise, 0)), v3(r, r, r)),
+            smoke,
+            0,
+        );
+    }
+}
+
+/// The helicopter: cabin, tail, skids, and a turning rotor. `at` is under its skids.
+pub fn helicopter(b: &mut Batch, at: V3, yaw: i32, rotor: i32, body: Rgb, dark: Rgb) {
+    let base = Affine::translate(at).then(&Affine::rot_y(yaw));
+    let part = |b: &mut Batch, mesh: Mesh, c: V3, s: V3, rgb: Rgb| {
+        b.push(LAYER_INKED, mesh, &base.then(&boxed(c, s)), rgb, 0);
+    };
+    part(
+        b,
+        Mesh::Sphere,
+        v3(0, ratio(19, 10), 0),
+        v3(int(3), ratio(26, 10), int(6)),
+        body,
+    );
+    part(
+        b,
+        Mesh::Cube,
+        v3(0, ratio(22, 10), int(6)),
+        v3(ratio(7, 10), ratio(7, 10), int(7)),
+        body,
+    );
+    part(
+        b,
+        Mesh::Cube,
+        v3(0, ratio(33, 10), ratio(95, 10)),
+        v3(ratio(2, 10), int(2), ratio(12, 10)),
+        dark,
+    );
+    part(
+        b,
+        Mesh::Cube,
+        v3(0, ratio(19, 10), -ratio(22, 10)),
+        v3(ratio(24, 10), ratio(9, 10), ratio(4, 10)),
+        dark,
+    );
+    for side in [-1, 1] {
+        part(
+            b,
+            Mesh::Cube,
+            v3(side * ratio(12, 10), ratio(1, 10), 0),
+            v3(ratio(15, 100), ratio(15, 100), int(5)),
+            dark,
+        );
+        part(
+            b,
+            Mesh::Cube,
+            v3(side * ratio(12, 10), ratio(6, 10), 0),
+            v3(ratio(1, 10), ratio(9, 10), ratio(1, 10)),
+            dark,
+        );
+    }
+    part(
+        b,
+        Mesh::Cube,
+        v3(0, ratio(34, 10), 0),
+        v3(ratio(3, 10), ratio(4, 10), ratio(3, 10)),
+        dark,
+    );
+    for k in 0..2 {
+        let blade = base
+            .then(&Affine::translate(v3(0, ratio(37, 10), 0)))
+            .then(&Affine::rot_y(rotor + k * fx::QUARTER))
+            .then(&Affine::scale(v3(ratio(3, 10), ratio(6, 100), int(12))));
+        b.push(LAYER_PLAIN, Mesh::Cube, &blade, dark, 0);
     }
 }
 

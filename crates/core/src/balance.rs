@@ -11,8 +11,13 @@ pub const DT: i32 = ratio(1, 60);
 pub const MAX_TICKS_PER_FRAME: u32 = 6;
 /// Reflex mode: the world runs at this share of real time.
 pub const REFLEX_SLOW: i32 = 5;
-/// Reflex mode lasts this long in game time (five seconds of real time).
-pub const REFLEX_TIME: i32 = int(1);
+/// Reflex mode lasts this long in game time (two and a half seconds of real time).
+pub const REFLEX_TIME: i32 = ratio(1, 2);
+/// When reflex mode runs out and the alarm goes up, nobody fires for this long.
+pub const COMBAT_GRACE: i32 = ratio(15, 10);
+/// In combat, a soldier who sights you after the base has lost you for this
+/// long radios where you are; until then the others go where they last heard.
+pub const RADIO_GAP: i32 = int(1);
 
 // --- the operative ---------------------------------------------------------------
 pub const RADIUS: i32 = ratio(35, 100);
@@ -41,6 +46,18 @@ pub const GRAVITY: i32 = int(20);
 pub const STEP: i32 = ratio(45, 100);
 /// A ledge up to this high is vaulted (Space).
 pub const VAULT_MAX: i32 = ratio(17, 10);
+/// Something no higher than this and no deeper than `MANTLE_DEPTH` is
+/// vaulted clean over, landing beyond it.
+pub const MANTLE_OVER: i32 = ratio(12, 10);
+pub const MANTLE_DEPTH: i32 = ratio(15, 10);
+/// A ledge up to this high above the feet is leapt at and hung from
+/// (Uncharted's grab); hanging, the feet are this far below it.
+pub const HANG_MAX: i32 = ratio(26, 10);
+pub const HANG_REACH: i32 = ratio(195, 100);
+pub const GRAB_TIME: i32 = ratio(3, 10);
+pub const CLIMB_TIME: i32 = ratio(9, 10);
+/// Hanging, she moves sideways along the ledge this fast.
+pub const SHIMMY: i32 = ratio(12, 10);
 pub const VAULT_TIME: i32 = ratio(45, 100);
 /// The dive from a sprint: forward speed, the upward kick that takes her
 /// off the ground (about half a metre up, half a second in the air), and the
@@ -164,6 +181,9 @@ pub const SLEEP_TIME: i32 = int(300);
 pub const DART_DELAY: i32 = ratio(25, 10);
 pub const STUN_RAM: i32 = int(30);
 pub const STUN_THROW: i32 = int(90);
+/// A dive into a soldier knocks him down this long, and reaches this far.
+pub const STUN_DIVE: i32 = int(4);
+pub const DIVE_REACH: i32 = ratio(11, 10);
 pub const WAKE_BUDDY: i32 = int(3);
 pub const UNTIE_TIME: i32 = int(4);
 
@@ -247,3 +267,19 @@ pub const SCORE_PAR_SECS: i32 = 900;
 pub const SCORE_PER_SEC: i32 = 5;
 pub const SCORE_ALERT: i32 = 1_000;
 pub const SCORE_KILL: i32 = 2_500;
+
+// --- the Deterrence Unit -----------------------------------------------------------------------
+/// Setting a charge: how near the site, and how long she crouches there.
+pub const PLANT_REACH: i32 = ratio(16, 10);
+pub const PLANT_TIME: i32 = int(3);
+/// She must be this far (flat) from the mech to set the charges off.
+pub const SAFE_DISTANCE: i32 = int(70);
+/// Everyone this near the mech is thrown down this long by the blast.
+pub const BLAST_RADIUS: i32 = int(30);
+pub const STUN_BLAST: i32 = int(10);
+/// After the blast, each soldier hunts a point up to this many metres from the wreck.
+pub const SEARCH_SPREAD: i32 = 35;
+/// The helicopter lands at the landing zone this long after the blast.
+pub const HELI_WAIT: i32 = int(75);
+/// It comes into view this long before it lands.
+pub const HELI_APPROACH: i32 = int(12);

@@ -85,7 +85,7 @@ export function makeHud(copy, display) {
       const obj = el("h-objective");
       obj.textContent = p.objective;
       obj.classList.toggle("done", p.objective_done);
-      el("h-note").textContent = p.objective_note;
+      el("h-note").textContent = words(copy, p.objective_note);
       // prompts
       const box = el("prompts");
       const want = p.prompts.filter((k) => k).map((k) => copy[k] || k);

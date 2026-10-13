@@ -12,6 +12,9 @@ pub enum Kind {
     Rescue,
     Eliminate,
     Recover,
+    /// plant charges on the Deterrence Unit, set them off from far away,
+    /// then hold out for the helicopter
+    Sabotage,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -34,6 +37,8 @@ pub struct SoldierSpec {
     pub route: Vec<(V3, i32)>,
     pub yaw: i32,
     pub perch: bool,
+    /// walks his route up on a deck (the mech's), straight from point to point
+    pub deck: bool,
     pub elite: bool,
     pub officer: bool,
     pub target: bool,
@@ -56,6 +61,8 @@ pub struct Mission {
     pub seed: u64,
     pub intel: Vec<Intel>,
     pub soldiers: Vec<SoldierSpec>,
+    /// where the charges go (a sabotage mission)
+    pub charges: Vec<V3>,
 }
 
 #[derive(Deserialize)]
@@ -80,6 +87,8 @@ struct RawMission {
     seed: u64,
     intel: Vec<RawIntel>,
     soldiers: Vec<RawSoldier>,
+    #[serde(default)]
+    charges: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -97,6 +106,9 @@ struct RawSoldier {
     facing: i32,
     #[serde(default)]
     perch: Option<String>,
+    /// a named place whose height his route is walked at
+    #[serde(default)]
+    deck: Option<String>,
     #[serde(default)]
     elite: bool,
     #[serde(default)]
@@ -121,6 +133,7 @@ pub fn parse_missions(json: &str, world: &World) -> Result<Vec<Mission>, String>
             "rescue" => Kind::Rescue,
             "eliminate" => Kind::Eliminate,
             "recover" => Kind::Recover,
+            "sabotage" => Kind::Sabotage,
             k => return Err(format!("missions.json {}: unknown kind '{k}'", m.id)),
         };
         let mut intel = Vec::new();
@@ -148,12 +161,16 @@ pub fn parse_missions(json: &str, world: &World) -> Result<Vec<Mission>, String>
                         })
                     })
                     .collect::<Result<Vec<_>, _>>()?;
+            let deck_y = match &s.deck {
+                Some(d) => place(world, d, "a deck")?.y,
+                None => 0,
+            };
             let route = match &s.perch {
                 Some(p) => vec![(place(world, p, "a perch")?, 0)],
                 None => s
                     .route
                     .iter()
-                    .map(|r| (v3(int(r[0]), 0, int(r[1])), int(r[2])))
+                    .map(|r| (v3(int(r[0]), deck_y, int(r[1])), int(r[2])))
                     .collect(),
             };
             if route.is_empty() {
@@ -165,7 +182,8 @@ pub fn parse_missions(json: &str, world: &World) -> Result<Vec<Mission>, String>
             soldiers.push(SoldierSpec {
                 route,
                 yaw: deg(s.facing),
-                perch: s.perch.is_some(),
+                perch: s.perch.is_some() || s.deck.is_some(),
+                deck: s.deck.is_some(),
                 elite: s.elite,
                 officer: s.officer,
                 target: s.target,
@@ -182,6 +200,17 @@ pub fn parse_missions(json: &str, world: &World) -> Result<Vec<Mission>, String>
             Some(p) => Some(place(world, p, "target_place")?),
             None => None,
         };
+        let charges = m
+            .charges
+            .iter()
+            .map(|c| place(world, c, "a charge"))
+            .collect::<Result<Vec<_>, _>>()?;
+        if (kind == Kind::Sabotage) != !charges.is_empty() {
+            return Err(format!(
+                "missions.json {}: a sabotage needs charges, and only a sabotage has them",
+                m.id
+            ));
+        }
         if kind != Kind::Eliminate && target_place.is_none() {
             return Err(format!("missions.json {}: needs a target_place", m.id));
         }
@@ -200,6 +229,7 @@ pub fn parse_missions(json: &str, world: &World) -> Result<Vec<Mission>, String>
             seed: m.seed,
             intel,
             soldiers,
+            charges,
         });
     }
     Ok(out)
@@ -317,15 +347,19 @@ mod tests {
     }
 
     #[test]
-    fn three_missions_with_different_objectives_targets_and_landing_zones() {
+    fn four_missions_with_different_objectives_targets_and_landing_zones() {
         let m = missions();
-        assert_eq!(m.len(), 3);
+        assert_eq!(m.len(), 4);
         let kinds: Vec<Kind> = m.iter().map(|m| m.kind).collect();
-        assert_eq!(kinds, vec![Kind::Rescue, Kind::Eliminate, Kind::Recover]);
+        assert_eq!(
+            kinds,
+            vec![Kind::Rescue, Kind::Eliminate, Kind::Recover, Kind::Sabotage]
+        );
         assert_ne!(m[0].lz, m[1].lz);
         assert_ne!(m[1].lz, m[2].lz);
         assert_ne!(m[0].start, m[2].start);
-        for mission in &m {
+        assert_eq!(m[3].charges.len(), 4);
+        for mission in m.iter().filter(|m| m.kind != Kind::Sabotage) {
             assert!(!mission.intel.is_empty());
             // someone knows where the objective is
             let target_intel = mission

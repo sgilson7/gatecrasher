@@ -106,6 +106,10 @@ pub struct World {
     pub crowns: Vec<(V3, i32)>,
     /// the cage's barred door in the warehouse's back room
     pub cage_door: usize,
+    /// the Deterrence Unit's boxes (`solids[a..b]`), in the final mission only
+    pub mech: Option<(usize, usize)>,
+    /// what colour it turns when the charges go off
+    pub mech_wreck: Rgb,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -173,11 +177,184 @@ pub fn build(p: &Palette) -> World {
     guard_tower(&mut w, &c, 720, -720, "tower_ne");
     yard(&mut w, &c);
     greenery(&mut w, &c);
+    mech_places(&mut w);
     w
 }
 
+/// The Deterrence Unit stands in the yard, facing the gate (+z). Its middle,
+/// in decimetres.
+pub const MECH_X: i32 = -80;
+pub const MECH_Z: i32 = -140;
+/// Half the hull's width and its deck's height, decimetres.
+const MECH_HULL: i32 = 60;
+pub const MECH_DECK_DM: i32 = 150;
+const MECH_DECK: i32 = MECH_DECK_DM;
+/// Each leg is a stack of tiers 2.2 m high, each a metre narrower on the
+/// outside than the one below: a ledge to leap at and climb, tier by tier.
+/// (outer x, z from, z to, y from, y to), decimetres, for the right leg.
+const MECH_TIERS: [(i32, i32, i32, i32, i32); 6] = [
+    (124, -60, 90, 0, 20),
+    (114, -55, 75, 20, 42),
+    (104, -50, 60, 42, 64),
+    (94, -45, 50, 64, 86),
+    (84, -40, 40, 86, 108),
+    (74, -35, 30, 108, 130),
+];
+const MECH_LEG_INNER: i32 = 40;
+
+/// Where the charges go and where the deck crew walk: named so missions.json
+/// can use them in any mission's file, though the mech is built only for one.
+fn mech_places(w: &mut World) {
+    let (x, z) = (MECH_X, MECH_Z);
+    w.place("mech", x, 0, z);
+    w.place("mech_knee_l", x - 89, 86, z);
+    w.place("mech_knee_r", x + 89, 86, z);
+    w.place("mech_reactor", x, MECH_DECK, z - 22);
+    w.place("mech_cockpit", x, 140, z + 70);
+    w.place("mech_deck", x, MECH_DECK, z);
+    w.place("mech_stairs", x - MECH_TIERS[0].0 - 40, 0, z);
+}
+
 impl World {
-    fn add(&mut self, lo: V3, hi: V3, colour: Rgb, style: i32) -> usize {
+    /// Builds the Deterrence Unit in the yard: two stepped legs, a hull
+    /// across them with a deck on top, a railgun, a reactor and a cockpit head.
+    pub fn add_mech(&mut self, p: &Palette) {
+        let body = p.get("mech");
+        let dark = p.get("mech_dark");
+        let glow = p.get("mech_glow");
+        self.mech_wreck = p.get("wreck");
+        let (x, z) = (MECH_X, MECH_Z);
+        let first = self.solids.len();
+        for side in [-1, 1] {
+            for (k, &(outer, z0, z1, y0, y1)) in MECH_TIERS.iter().enumerate() {
+                let colour = if k % 2 == 0 { body } else { dark };
+                self.dbox(
+                    x + side * MECH_LEG_INNER,
+                    z + z0,
+                    x + side * outer,
+                    z + z1,
+                    y0,
+                    y1,
+                    colour,
+                    STYLE_METAL,
+                );
+            }
+            // toes
+            for t in [-1, 1] {
+                let tx = x + side * (82 + t * 26);
+                self.dbox(tx - 10, z + 90, tx + 10, z + 110, 0, 10, dark, STYLE_METAL);
+            }
+        }
+        // a short stair of armour plates up the left foot's outer side: an
+        // incline you walk up (each plate a step high)
+        for k in 1..5 {
+            let lx = x - MECH_TIERS[0].0;
+            self.dbox(lx - 6 * (5 - k), z - 20, lx, z + 20, 0, 4 * k, dark, STYLE_METAL);
+        }
+        // the hull, its deck the top
+        self.dbox(
+            x - MECH_HULL,
+            z - 50,
+            x + MECH_HULL,
+            z + 55,
+            108,
+            MECH_DECK,
+            body,
+            STYLE_METAL,
+        );
+        // the reactor at the back of the deck, glowing
+        self.dbox(
+            x - 15,
+            z - 50,
+            x + 15,
+            z - 32,
+            MECH_DECK,
+            MECH_DECK + 20,
+            dark,
+            STYLE_METAL,
+        );
+        self.dbox(
+            x - 10,
+            z - 32,
+            x + 10,
+            z - 31,
+            MECH_DECK + 4,
+            MECH_DECK + 16,
+            glow,
+            STYLE_GLOW,
+        );
+        // fins
+        for side in [-1, 1] {
+            self.dbox(
+                x + side * 32,
+                z - 50,
+                x + side * 48,
+                z - 44,
+                MECH_DECK,
+                MECH_DECK + 40,
+                dark,
+                STYLE_METAL,
+            );
+        }
+        // the railgun on its mount, reaching out past the head
+        self.dbox(
+            x + 22,
+            z - 10,
+            x + 44,
+            z + 12,
+            MECH_DECK,
+            MECH_DECK + 8,
+            dark,
+            STYLE_METAL,
+        );
+        self.dbox(
+            x + 27,
+            z - 40,
+            x + 39,
+            z + 160,
+            MECH_DECK + 8,
+            MECH_DECK + 22,
+            body,
+            STYLE_METAL,
+        );
+        self.dbox(
+            x + 29,
+            z + 160,
+            x + 37,
+            z + 175,
+            MECH_DECK + 10,
+            MECH_DECK + 20,
+            dark,
+            STYLE_METAL,
+        );
+        // the head, its top a metre under the deck, with a red visor
+        self.dbox(x - 25, z + 55, x + 25, z + 88, 112, 140, dark, STYLE_METAL);
+        self.dbox(x - 18, z + 88, x + 18, z + 89, 122, 130, glow, STYLE_GLOW);
+        self.mech = Some((first, self.solids.len()));
+    }
+
+    /// The Deterrence Unit after the charges: blackened, its glow gone.
+    pub fn wreck_mech(&mut self) {
+        let Some((a, b)) = self.mech else {
+            return;
+        };
+        let wreck = self.mech_wreck;
+        for s in &mut self.solids[a..b] {
+            s.colour = wreck;
+            if s.style == STYLE_GLOW {
+                s.style = STYLE_METAL;
+            }
+        }
+    }
+
+    pub fn mech_wrecked(&self) -> bool {
+        self.mech
+            .is_some_and(|(a, b)| a < b && self.solids[a..b].iter().all(|s| s.style != STYLE_GLOW))
+    }
+}
+
+impl World {
+    pub(crate) fn add(&mut self, lo: V3, hi: V3, colour: Rgb, style: i32) -> usize {
         self.solids.push(Solid {
             lo,
             hi,

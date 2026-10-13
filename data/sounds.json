@@ -916,6 +916,254 @@
     "dur": 0.18,
     "gain": 0.2
    }
+  ],
+  "plant": [
+   {
+    "type": "osc",
+    "wave": "square",
+    "from": 1200,
+    "to": 1200,
+    "at": 0,
+    "attack": 0.002,
+    "dur": 0.05,
+    "gain": 0.05
+   },
+   {
+    "type": "noise",
+    "filter": "bandpass",
+    "freq": 1500,
+    "q": 4,
+    "at": 0.06,
+    "attack": 0.002,
+    "dur": 0.12,
+    "gain": 0.12
+   }
+  ],
+  "charge_set": [
+   {
+    "type": "osc",
+    "wave": "square",
+    "from": 1400,
+    "to": 1400,
+    "at": 0,
+    "attack": 0.002,
+    "dur": 0.06,
+    "gain": 0.06
+   },
+   {
+    "type": "osc",
+    "wave": "square",
+    "from": 1400,
+    "to": 1400,
+    "at": 0.12,
+    "attack": 0.002,
+    "dur": 0.06,
+    "gain": 0.06
+   },
+   {
+    "type": "osc",
+    "wave": "square",
+    "from": 1800,
+    "to": 1800,
+    "at": 0.24,
+    "attack": 0.002,
+    "dur": 0.12,
+    "gain": 0.06
+   }
+  ],
+  "explosion": [
+   {
+    "type": "noise",
+    "filter": "lowpass",
+    "freq": 900,
+    "q": 1,
+    "at": 0,
+    "attack": 0.005,
+    "dur": 2.5,
+    "gain": 0.8
+   },
+   {
+    "type": "osc",
+    "wave": "sine",
+    "from": 90,
+    "to": 25,
+    "at": 0,
+    "attack": 0.005,
+    "dur": 2.0,
+    "gain": 0.6
+   },
+   {
+    "type": "noise",
+    "filter": "lowpass",
+    "freq": 400,
+    "q": 1,
+    "at": 0.4,
+    "attack": 0.05,
+    "dur": 2.5,
+    "gain": 0.4
+   }
+  ],
+  "heli": [
+   {
+    "type": "noise",
+    "filter": "lowpass",
+    "freq": 300,
+    "q": 2,
+    "at": 0.0,
+    "attack": 0.01,
+    "dur": 0.09,
+    "gain": 0.3
+   },
+   {
+    "type": "noise",
+    "filter": "lowpass",
+    "freq": 300,
+    "q": 2,
+    "at": 0.125,
+    "attack": 0.01,
+    "dur": 0.09,
+    "gain": 0.3
+   },
+   {
+    "type": "noise",
+    "filter": "lowpass",
+    "freq": 300,
+    "q": 2,
+    "at": 0.25,
+    "attack": 0.01,
+    "dur": 0.09,
+    "gain": 0.3
+   },
+   {
+    "type": "noise",
+    "filter": "lowpass",
+    "freq": 300,
+    "q": 2,
+    "at": 0.375,
+    "attack": 0.01,
+    "dur": 0.09,
+    "gain": 0.3
+   },
+   {
+    "type": "noise",
+    "filter": "lowpass",
+    "freq": 300,
+    "q": 2,
+    "at": 0.5,
+    "attack": 0.01,
+    "dur": 0.09,
+    "gain": 0.3
+   },
+   {
+    "type": "noise",
+    "filter": "lowpass",
+    "freq": 300,
+    "q": 2,
+    "at": 0.625,
+    "attack": 0.01,
+    "dur": 0.09,
+    "gain": 0.3
+   },
+   {
+    "type": "noise",
+    "filter": "lowpass",
+    "freq": 300,
+    "q": 2,
+    "at": 0.75,
+    "attack": 0.01,
+    "dur": 0.09,
+    "gain": 0.3
+   },
+   {
+    "type": "noise",
+    "filter": "lowpass",
+    "freq": 300,
+    "q": 2,
+    "at": 0.875,
+    "attack": 0.01,
+    "dur": 0.09,
+    "gain": 0.3
+   },
+   {
+    "type": "noise",
+    "filter": "lowpass",
+    "freq": 300,
+    "q": 2,
+    "at": 1.0,
+    "attack": 0.01,
+    "dur": 0.09,
+    "gain": 0.3
+   },
+   {
+    "type": "noise",
+    "filter": "lowpass",
+    "freq": 300,
+    "q": 2,
+    "at": 1.125,
+    "attack": 0.01,
+    "dur": 0.09,
+    "gain": 0.3
+   },
+   {
+    "type": "noise",
+    "filter": "lowpass",
+    "freq": 300,
+    "q": 2,
+    "at": 1.25,
+    "attack": 0.01,
+    "dur": 0.09,
+    "gain": 0.3
+   },
+   {
+    "type": "noise",
+    "filter": "lowpass",
+    "freq": 300,
+    "q": 2,
+    "at": 1.375,
+    "attack": 0.01,
+    "dur": 0.09,
+    "gain": 0.3
+   },
+   {
+    "type": "noise",
+    "filter": "lowpass",
+    "freq": 300,
+    "q": 2,
+    "at": 1.5,
+    "attack": 0.01,
+    "dur": 0.09,
+    "gain": 0.3
+   },
+   {
+    "type": "noise",
+    "filter": "lowpass",
+    "freq": 300,
+    "q": 2,
+    "at": 1.625,
+    "attack": 0.01,
+    "dur": 0.09,
+    "gain": 0.3
+   },
+   {
+    "type": "noise",
+    "filter": "lowpass",
+    "freq": 300,
+    "q": 2,
+    "at": 1.75,
+    "attack": 0.01,
+    "dur": 0.09,
+    "gain": 0.3
+   },
+   {
+    "type": "noise",
+    "filter": "lowpass",
+    "freq": 300,
+    "q": 2,
+    "at": 1.875,
+    "attack": 0.01,
+    "dur": 0.09,
+    "gain": 0.3
+   }
   ]
  }
 }

@@ -23,7 +23,7 @@ wrong), and where this file enforces each:
   \\put, \\char ...). The alarm over the soldier's head is a drawn wedge and
   dot (`alarm`), not a character.
 - sizes: title, failed, complete and graceland are 1920x1080 and opaque;
-  mission1-3 are 960x540 and opaque; mule is 512x512 with a transparent
+  mission1-4 are 960x540 and opaque; mule is 512x512 with a transparent
   background (`SIZE`; `check` reads every PNG's header and refuses a wrong
   size, a cutout without an alpha channel, an opaque picture with one, or a
   file over 1.5 MB). The HUD mule must clear all four edges, be centred and
@@ -82,6 +82,7 @@ COLOURS = {
     "heli": "4F8F86", "helidark": "3A6C66",
     "duskA": "7A5272", "duskB": "B06A78", "duskC": "DE8E72", "dirt": "C08A68", "dirtdark": "A87256", "beam": "FFF3BE",
     "sunA": "F3B86A", "sunB": "EE9268", "sunC": "E57766", "sundisc": "FBE3A0", "seadusk": "6F9E9C",
+    "mech": "7C8C99", "mechdark": "55606E", "mechlight": "A3B0BA", "visor": "F25C3B",
     "balloon": "F8F0DE", "hay": "E9C46A", "haydark": "C99B45", "barn": "C9604F", "trim": "F6E7C4",
 }
 
@@ -1404,6 +1405,70 @@ def mission3():
     return g, "card"
 
 
+def mission4():
+    """Mission four: the Deterrence Unit seen from low in the yard, a
+    walking platform as tall as a building: stepped legs, the hull and its
+    deck, the railgun reaching out over the head, the red visor. A soldier
+    stands on the deck; the operative hangs from the edge of a leg's tier."""
+    W, H = 16.0, 9.0
+    rng = random.Random(4)
+    g = Fig(ink=1.0)
+    g.rect(-0.2, -0.2, W + 0.2, H + 0.2, "sky")
+    g.rect(-0.2, 6.9, W + 0.2, H + 0.2, "skyhi", lw=0.6)
+    for cx, cy, cs in ((1.8, 7.6, 0.6), (14.2, 6.4, 0.55), (11.6, 8.3, 0.45)):
+        cloud(g, cx, cy, cs)
+    # the far wall and a guard tower, small under it
+    g.rect(-0.2, 0.9, W + 0.2, 1.7, "concrete", lw=0.8)
+    g.rect(0.3, 1.7, 1.5, 2.5, "wallA", lw=0.8)
+    g.rect(0.2, 2.5, 1.6, 2.65, "shingle", lw=0.7)
+    g.rect(14.3, 1.7, 15.6, 2.3, "wallC", lw=0.8)
+    g.rect(-0.2, -0.2, W + 0.2, 1.0, "paving", lw=0.8)
+    # the legs: tiers stepping in toward the hull
+    tiers = [(0.0, 0.85, 2.3), (0.85, 1.75, 2.0), (1.75, 2.65, 1.75), (2.65, 3.55, 1.5), (3.55, 4.45, 1.3)]
+    for side, cx in ((-1, 4.6), (1, 11.4)):
+        for k, (y0, y1, half) in enumerate(tiers):
+            g.rect(cx - half, y0 + 0.2, cx + half, y1 + 0.2, "mech" if k % 2 == 0 else "mechdark")
+            g.stroke([(cx - half + 0.15, y1 + 0.05), (cx + half - 0.15, y1 + 0.05)], lw=0.6, colour="mechlight")
+        # toes
+        for t in (-1, 1):
+            g.rect(cx + t * 1.4 - 0.45, 0.2, cx + t * 1.4 + 0.45, 0.55, "mechdark", lw=0.8)
+    # the hull across the legs
+    g.poly([(3.0, 4.4), (13.0, 4.4), (13.4, 6.2), (2.6, 6.2)], "mech")
+    g.rect(2.6, 6.2, 13.4, 6.45, "mechdark")
+    for x in (4.2, 6.2, 9.8, 11.8):
+        g.stroke([(x, 4.55), (x - 0.1, 6.05)], lw=0.6, colour="mechdark")
+    # the head under the front of the hull, its visor glowing
+    g.poly([(6.6, 3.2), (9.4, 3.2), (9.8, 4.45), (6.2, 4.45)], "mechdark")
+    g.rect(6.9, 3.65, 9.1, 4.0, "visor", lw=0.8)
+    glow(g, 8.0, 3.82, 0.35, colour="visor", rings=(1.6, 1.25))
+    # the reactor and fins on the deck, the railgun reaching out
+    g.rect(6.8, 6.45, 9.2, 7.2, "mechdark")
+    g.rect(7.3, 6.6, 8.7, 7.0, "visor", lw=0.7)
+    for fx in (4.4, 11.2):
+        g.poly([(fx, 6.45), (fx + 0.4, 6.45), (fx + 0.3, 7.9), (fx + 0.1, 7.9)], "mechdark")
+    g.rect(9.6, 6.45, 10.6, 6.75, "mechdark", lw=0.8)
+    g.poly([(9.8, 6.75), (10.4, 6.75), (15.8, 5.6), (15.8, 5.2)], "mech")
+    g.rect(15.4, 5.05, 16.2, 5.75, "mechdark", lw=0.8)
+    # a soldier on the deck, watching the yard
+    with g.frame(5.6, 6.45, 0.42):
+        soldier_side(g, rng)
+    # the operative hanging by both hands from the edge of a tier on the
+    # left leg (seen from behind: her back to us, the portal gun on it)
+    hx, hy = 2.72, 2.86
+    for sx in (-0.13, 0.13):
+        limb(g, [(hx + sx * 1.3, hy - 0.55), (hx + sx * 1.1, hy - 0.25), (hx + sx, hy + 0.02)], [0.12, 0.11, 0.1], "camoB")
+        g.circle(hx + sx, hy + 0.03, 0.06, "skin", lw=0.5)
+    g.blob([(hx - 0.22, hy - 0.5), (hx + 0.22, hy - 0.5), (hx + 0.19, hy - 1.12), (hx - 0.19, hy - 1.12)], "suit", tension=0.3, lw=0.7)
+    camo(g, rng, [(hx, hy - 0.55), (hx, hy - 1.05)], 0.3, 2)
+    with g.frame(hx, hy - 0.85, 0.22, 90):
+        portal_gun(g)
+    for sx in (-0.09, 0.1):
+        limb(g, [(hx + sx, hy - 1.1), (hx + sx * 1.3, hy - 1.5), (hx + sx * 1.1, hy - 1.88)], [0.14, 0.12, 0.11], "suit")
+        g.blob([(hx + sx * 1.1 - 0.08, hy - 1.86), (hx + sx * 1.1 + 0.08, hy - 1.86), (hx + sx * 1.1 + 0.07, hy - 2.0), (hx + sx * 1.1 - 0.07, hy - 2.0)], "leather", tension=0.3, lw=0.5)
+    her_head(g, hx, hy - 0.36, 0.17, rng)
+    return g, "card"
+
+
 def mule_picture():
     g = Fig(ink=1.8)
     mule_head(g)
@@ -1411,7 +1476,7 @@ def mule_picture():
 
 
 PICTURES = {"title": title, "failed": failed, "complete": complete, "graceland": graceland,
-            "mission1": mission1, "mission2": mission2, "mission3": mission3, "mule": mule_picture}
+            "mission1": mission1, "mission2": mission2, "mission3": mission3, "mission4": mission4, "mule": mule_picture}
 
 FORBIDDEN = ["\\node", "\\text", "\\put", "\\char", "\\pgftext", "label=", "pin=", "\\Large", "\\huge", "\\LaTeX", "\\TeX", "\\symbol", "\\verb"]
 

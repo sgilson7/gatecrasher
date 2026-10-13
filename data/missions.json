@@ -1,5 +1,5 @@
 {
-  "_about": "The three missions. All use the same zone (crates/core/src/world.rs); each has its own soldiers, objective and landing zone. Positions are metres [x, z] (north is -z); a route point's third number is seconds to wait there; `facing` is degrees (0 north, 90 west, 180 south, 270 east). `perch` stands a soldier on a named place (a tower deck) instead of a route. `knows` names the intel he gives up when interrogated; a soldier who knows nothing marks the soldiers near him instead. The player knows only `objective` at the start: everything in `intel` must be got out of someone.",
+  "_about": "The four missions. All use the same zone (crates/core/src/world.rs); each has its own soldiers, objective and landing zone. Positions are metres [x, z] (north is -z); a route point's third number is seconds to wait there; `facing` is degrees (0 north, 90 west, 180 south, 270 east). `perch` stands a soldier on a named place (a tower deck) instead of a route. `knows` names the intel he gives up when interrogated; a soldier who knows nothing marks the soldiers near him instead. The player knows only `objective` at the start: everything in `intel` must be got out of someone.",
   "missions": [
     {
       "id": "caged_bird",
@@ -143,6 +143,61 @@
         { "route": [[-20, 28, 4], [-42, 6, 3], [-8, 8, 3]] },
         { "route": [[-44, 44, 4], [-40, 28, 3], [-28, 44, 4]] },
         { "route": [[-60, -76, 4], [20, -76, 4]], "elite": true }
+      ]
+    },
+    {
+      "id": "deterrence",
+      "kind": "sabotage",
+      "name": "Deterrence",
+      "brief": "Big Chum, the outpost has finished the Deterrence Unit: a walking weapons platform as tall as a building, standing in the middle of the yard. Nobody pilots it yet. Climb it and set four charges: one on each knee, one on the reactor at the back of the deck, one on the cockpit roof. Get at least 70 m clear before you set them off, then hold out until the helicopter can land at the west landing zone. The deck crew have the best view in the base, and soldiers walk its feet all day: pick your moments.",
+      "objective": "Destroy the Deterrence Unit",
+      "objective_unknown": "",
+      "target_name": "Deterrence Unit",
+      "start": "start_west",
+      "start_facing": 270,
+      "lz": "lz_west",
+      "target_place": "mech",
+      "charges": ["mech_knee_l", "mech_knee_r", "mech_reactor", "mech_cockpit"],
+      "seed": 4404,
+      "intel": [
+        {
+          "id": "stairs",
+          "text": "\"There's a step plate on the outside of the left foot. The maintenance crew walk straight up it.\"",
+          "reveals": "mech_stairs"
+        },
+        {
+          "id": "climb",
+          "text": "\"The legs are built in tiers, like stairs for a giant. The techs jump, catch the edge and pull themselves up, all the way to the deck.\"",
+          "reveals": "none"
+        },
+        {
+          "id": "pilot",
+          "text": "\"There's no pilot. The cockpit's empty; they're still waiting for one to be flown in. Its roof is a metre under the deck.\"",
+          "reveals": "mech_cockpit"
+        },
+        {
+          "id": "lenses",
+          "text": "\"The men in black wear the lenses. They'll see your doors.\"",
+          "reveals": "elites"
+        }
+      ],
+      "soldiers": [
+        { "route": [[-26, -26, 3], [8, -26, 3], [8, 6, 3], [-26, 6, 3]], "knows": ["climb"] },
+        { "route": [[8, 6, 3], [-26, 6, 3], [-26, -26, 3], [8, -26, 3]] },
+        { "route": [[-8, -22, 5], [-8, -2, 5]], "knows": ["pilot"] },
+        { "route": [[-25, -6, 0]], "facing": 0, "knows": ["stairs"] },
+        { "route": [[6, -14, 0]], "facing": 270 },
+        { "route": [[-6, 6, 0]], "facing": 180, "knows": ["pilot"] },
+        { "route": [[-40, -10, 6], [-28, -14, 4]], "knows": ["stairs"] },
+        { "route": [[20, -30, 4], [20, 0, 4]] },
+        { "route": [[-20, -34, 4], [4, -34, 4]], "elite": true, "knows": ["lenses"] },
+        { "route": [[6, 20, 4], [6, 34, 4]], "elite": true },
+        { "route": [[-30, 10, 4], [-10, 14, 4]], "knows": ["climb"] },
+        { "route": [[-13, -16, 4], [-13, -10, 3], [-7, -10, 4], [-7, -15, 3]], "deck": "mech_deck" },
+        { "route": [[-3, -17, 5], [-3, -9, 5]], "deck": "mech_deck" },
+        { "route": [[-10, -7, 6], [-6, -7, 6]], "deck": "mech_cockpit" },
+        { "perch": "tower_sw", "facing": 45 },
+        { "route": [[-58, -8, 5], [-40, -8, 3], [-40, -36, 4], [-58, -36, 3]] }
       ]
     }
   ]

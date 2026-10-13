@@ -85,6 +85,8 @@ pub struct Soldier {
     pub path: Vec<V3>,
     pub path_goal: Option<V3>,
     pub perch: bool,
+    /// walks a route on a deck, straight from point to point (no nav grid up there)
+    pub deck: bool,
     pub home_yaw: i32,
     pub elite: bool,
     pub officer: bool,
@@ -108,6 +110,9 @@ pub struct Soldier {
     pub seen_bodies: Vec<usize>,
     pub moving: bool,
     pub walk_phase: i32,
+    /// in combat: where he last knew you to be, from his own eyes, a shot
+    /// he heard, or the radio when someone spots you
+    pub lkp: V3,
     pub id: usize,
     pub name_seed: u64,
 }
@@ -146,7 +151,8 @@ pub struct Ctx<'a> {
     pub portals: [Option<V3>; 2],
     pub balloons: &'a [V3],
     pub tick: u32,
-    pub reflex: bool,
+    /// reflex mode, or the moment after it: nobody fires yet
+    pub hold_fire: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -189,6 +195,7 @@ impl Soldier {
             path: Vec::new(),
             path_goal: None,
             perch,
+            deck: false,
             home_yaw: yaw,
             elite: false,
             officer: false,
@@ -208,6 +215,7 @@ impl Soldier {
             seen_bodies: Vec::new(),
             moving: false,
             walk_phase: 0,
+            lkp: pos,
             id,
             name_seed: id as u64,
         }
@@ -293,6 +301,7 @@ impl Soldier {
         }
         if combat {
             self.awareness = int(100);
+            self.lkp = t.pos;
             out.push(Event::Sees(t.pos));
             return true;
         }
@@ -333,6 +342,8 @@ impl Soldier {
             return;
         }
         match self.mind {
+            // in combat a shot tells him where you are; a footstep does not
+            Mind::Combat if gunshot => self.lkp = at,
             Mind::Combat | Mind::HandsUp { .. } => {}
             Mind::Help { .. } | Mind::Portal { .. } if !gunshot => {}
             _ => {
@@ -340,6 +351,13 @@ impl Soldier {
                 self.mind = Mind::Investigate { at, t: 0 };
                 self.path_goal = None;
             }
+        }
+    }
+
+    /// The radio: someone has eyes on you at `at`.
+    pub fn radio(&mut self, at: V3) {
+        if matches!(self.mind, Mind::Combat) {
+            self.lkp = at;
         }
     }
 
@@ -559,6 +577,10 @@ impl Soldier {
         if self.route.is_empty() {
             return;
         }
+        if self.deck && self.route.len() > 1 {
+            self.deck_patrol(dt);
+            return;
+        }
         if self.perch || self.route.len() == 1 {
             let (home, _) = self.route[0];
             if !self.perch && self.pos.dist(home) > ONE {
@@ -580,6 +602,28 @@ impl Soldier {
         }
     }
 
+    /// Up on a deck: straight from point to point, waiting at each.
+    fn deck_patrol(&mut self, dt: i32) {
+        if self.wait > 0 {
+            self.wait -= dt;
+            return;
+        }
+        let (goal, pause) = self.route[self.route_i];
+        let d = v3(goal.x - self.pos.x, 0, goal.z - self.pos.z);
+        let step = fx::mul(WALK, dt);
+        if d.len() <= step {
+            self.pos = v3(goal.x, self.pos.y, goal.z);
+            self.route_i = (self.route_i + 1) % self.route.len();
+            self.wait = pause;
+            return;
+        }
+        let n = d.norm();
+        self.pos = self.pos.add(n.scale(step));
+        self.moving = true;
+        self.turn_to(fx::atan2(-n.x, -n.z), dt * 2);
+        self.walk_phase = crate::player::stride(self.walk_phase, WALK, dt, STRIDE, STRIDE_GROW);
+    }
+
     fn fight(&mut self, ctx: &Ctx, rng: &mut Rng, dt: i32, sees: bool, out: &mut Vec<Event>) {
         self.look = 0;
         let p = &ctx.player;
@@ -588,7 +632,7 @@ impl Soldier {
             self.face(p.pos, dt * 2);
             self.aim += dt;
             let need = if self.elite { AIM_TIME_ELITE } else { AIM_TIME };
-            if self.aim >= need && self.fire_cd <= 0 && !ctx.reflex && self.rifle_down.is_none() {
+            if self.aim >= need && self.fire_cd <= 0 && !ctx.hold_fire && self.rifle_down.is_none() {
                 self.fire_cd = FIRE_EVERY;
                 let mut chance = HIT_CLOSE - HIT_PER_10M * (d / int(10)) - p.stance_hit;
                 if p.sprinting {
@@ -605,10 +649,12 @@ impl Soldier {
             return;
         }
         self.aim = (self.aim - dt).max(0);
-        if !self.perch {
-            self.walk_to(ctx, ctx.lkp, RUN, dt);
-        } else {
-            self.face(ctx.lkp, dt);
+        // to where he last knew you were, then looking about him there
+        let there = self.perch || self.walk_to(ctx, self.lkp, RUN, dt);
+        if there {
+            self.face(self.lkp, dt);
+            let phase = ((ctx.tick as i32 + self.id as i32 * 37) * (fx::TURN / 240)) & (fx::TURN - 1);
+            self.look = fx::mul(deg(70), fx::sin(phase));
         }
     }
 
@@ -774,7 +820,7 @@ mod tests {
             portals: [None, None],
             balloons: &[],
             tick: 0,
-            reflex: false,
+            hold_fire: false,
         }
     }
 

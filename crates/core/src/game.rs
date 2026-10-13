@@ -179,6 +179,16 @@ struct Run {
     phase: Phase,
     lkp: V3,
     reflex: Option<(usize, i32)>,
+    /// after reflex mode ends, a moment before anyone fires
+    grace: i32,
+    /// how long since any soldier last had eyes on you (a sighting after a
+    /// while unseen goes out on the radio)
+    unseen: i32,
+    /// the sabotage: which charges are set, the one being set and how long
+    /// it has left, and the time since they went off
+    charges: Vec<bool>,
+    planting: Option<(usize, i32)>,
+    blown: Option<i32>,
     rng: Rng,
     elapsed: i32,
     alerts: i32,
@@ -251,6 +261,9 @@ pub struct Game {
     toasts: Vec<String>,
     names: Rng,
     scenery_cage_open: bool,
+    scenery_wrecked: bool,
+    /// whether `nav` was built with the Deterrence Unit standing in the yard
+    nav_mech: bool,
 }
 
 fn secs_text(secs: i32) -> String {
@@ -310,6 +323,8 @@ impl Game {
             toasts: Vec::new(),
             names: Rng::new(9),
             scenery_cage_open: false,
+            scenery_wrecked: false,
+            nav_mech: false,
         };
         g.load(saved);
         g.rebuild_scenery();
@@ -460,6 +475,7 @@ impl Game {
         let mut soldiers = Vec::new();
         for (k, s) in m.soldiers.iter().enumerate() {
             let mut sol = Soldier::new(k, s.route.clone(), s.yaw, s.perch);
+            sol.deck = s.deck;
             sol.elite = s.elite;
             sol.officer = s.officer;
             sol.target = s.target;
@@ -476,6 +492,15 @@ impl Game {
         if m.kind != Kind::Rescue {
             // the cage stands empty and open in the other missions
             world.open_cage();
+        }
+        let want_mech = m.kind == Kind::Sabotage;
+        if want_mech {
+            world.add_mech(&self.palette);
+        }
+        if want_mech != self.nav_mech {
+            // the soldiers' grid must walk round the mech, or not
+            self.nav = Nav::build(&world);
+            self.nav_mech = want_mech;
         }
         let tranq = TRANQ_ROUNDS + 2 * levels[1];
         let battery = BATTERY + fx::mul(BATTERY, ratio(8 * levels[2], 100));
@@ -502,6 +527,11 @@ impl Game {
             portal_cd: 0,
             phase: Phase::Normal,
             lkp: V3::ZERO,
+            grace: 0,
+            unseen: 0,
+            charges: vec![false; m.charges.len()],
+            planting: None,
+            blown: None,
             reflex: None,
             rng: Rng::new(m.seed),
             elapsed: 0,
@@ -553,6 +583,7 @@ impl Game {
     fn rebuild_scenery(&mut self) {
         let w = self.run.as_ref().map(|r| &r.world).unwrap_or(&self.base);
         self.scenery_cage_open = w.cage_open();
+        self.scenery_wrecked = w.mech_wrecked();
         let (v, runs) = draw::scenery(w, &self.palette).finish();
         self.scenery_vals = v;
         self.scenery_runs = runs;
@@ -678,7 +709,8 @@ impl Game {
         }
         self.sounds.extend(sounds);
         self.toasts.extend(toasts);
-        let rebuild = r.world.cage_open() != self.scenery_cage_open;
+        let rebuild =
+            r.world.cage_open() != self.scenery_cage_open || r.world.mech_wrecked() != self.scenery_wrecked;
         self.run = Some(r);
         if rebuild {
             self.rebuild_scenery();
@@ -845,9 +877,14 @@ fn start_combat(r: &mut Run, sounds: &mut Vec<&'static str>) {
     }
     r.phase = Phase::Combat(0);
     r.reflex = None;
+    r.grace = COMBAT_GRACE;
+    // spotted: the alarm gives everyone where you are now, and no more
     r.lkp = r.p.pos;
+    r.unseen = 0;
     for s in r.soldiers.iter_mut() {
         s.alert();
+        s.aim = 0;
+        s.lkp = r.lkp;
     }
     sounds.push("alert");
 }
@@ -930,6 +967,7 @@ fn kill(r: &mut Run, i: usize) {
 
 fn objective_done(r: &Run, m: &Mission) -> bool {
     match m.kind {
+        Kind::Sabotage => r.blown.is_some_and(|t| t >= HELI_WAIT),
         Kind::Rescue => {
             r.prisoner == Prisoner::Gone
                 || r.carry == Some(Carry::Commando)
@@ -1081,6 +1119,10 @@ enum Use {
     TakeCase,
     CarryBody(usize),
     Hide(usize),
+    /// a charge site on the mech, near
+    Plant(usize),
+    /// every charge set, and far enough away
+    Detonate,
 }
 
 fn what_use(r: &Run, m: &Mission) -> Use {
@@ -1117,6 +1159,20 @@ fn what_use(r: &Run, m: &Mission) -> Use {
             return Use::TalkMule;
         }
     }
+    if m.kind == Kind::Sabotage && r.blown.is_none() {
+        if r.planting.is_some() {
+            return Use::Nothing;
+        }
+        if r.charges.iter().all(|c| *c) {
+            if clear_of_mech(r, m) {
+                return Use::Detonate;
+            }
+        } else if let Some(k) =
+            (0..m.charges.len()).find(|&k| !r.charges[k] && m.charges[k].dist(at) < PLANT_REACH)
+        {
+            return Use::Plant(k);
+        }
+    }
     if m.kind == Kind::Rescue {
         if r.prisoner == Prisoner::Caged {
             if let Some(door) = r.world.place_at("cage_door") {
@@ -1147,6 +1203,62 @@ fn what_use(r: &Run, m: &Mission) -> Use {
         }
     }
     Use::Nothing
+}
+
+/// How far, flat, she is from the Deterrence Unit.
+fn mech_distance(r: &Run, m: &Mission) -> i32 {
+    let c = m.target_place.unwrap_or(V3::ZERO);
+    v3(r.p.pos.x - c.x, 0, r.p.pos.z - c.z).len()
+}
+
+fn clear_of_mech(r: &Run, m: &Mission) -> bool {
+    mech_distance(r, m) >= SAFE_DISTANCE
+}
+
+/// The charges go off: the mech is wrecked, everyone near it is thrown off
+/// their feet, the deck crew land on the ground, and the base goes to alert
+/// without knowing where you are. The helicopter is on its way.
+fn detonate(r: &mut Run, m: &Mission, sounds: &mut Vec<&'static str>, toasts: &mut Vec<String>) {
+    r.blown = Some(0);
+    r.world.wreck_mech();
+    let c = m.target_place.unwrap_or(V3::ZERO);
+    r.phase = Phase::Combat(0);
+    r.reflex = None;
+    r.lkp = c;
+    r.unseen = 0;
+    for k in 0..r.soldiers.len() {
+        let s = &mut r.soldiers[k];
+        if s.deck || (s.perch && s.pos.y > int(4) && v3(s.pos.x - c.x, 0, s.pos.z - c.z).len() < int(20)) {
+            // blown off the mech onto the ground beside it
+            let away = v3(s.pos.x - c.x, 0, s.pos.z - c.z);
+            let away = if away.len() > ONE / 4 {
+                away.norm()
+            } else {
+                v3(ONE, 0, 0)
+            };
+            s.pos = c.add(away.scale(int(17)));
+            s.deck = false;
+            s.perch = false;
+            s.route = vec![(s.pos, 0)];
+            s.route_i = 0;
+        }
+        let near = v3(s.pos.x - c.x, 0, s.pos.z - c.z).len() < BLAST_RADIUS;
+        if near && s.awake() {
+            knock_out(r, k, Life::Stunned(STUN_BLAST));
+        }
+        let s = &mut r.soldiers[k];
+        s.alert();
+        s.aim = 0;
+        // each goes to look somewhere round the wreck
+        s.lkp = c.add(v3(
+            int(r.rng.range(-SEARCH_SPREAD, SEARCH_SPREAD)),
+            0,
+            int(r.rng.range(-SEARCH_SPREAD, SEARCH_SPREAD)),
+        ));
+    }
+    sounds.push("explosion");
+    sounds.push("alert");
+    toasts.push("@sab_blown".into());
 }
 
 fn fulton_target(r: &Run) -> Option<Who> {
@@ -1230,7 +1342,22 @@ fn player_tick(
             sounds.push("uniform");
         }
     }
-    let busy = r.hold.is_some() || r.carry.is_some();
+    if let Some((k, t)) = r.planting {
+        if t - dt <= 0 {
+            r.planting = None;
+            r.charges[k] = true;
+            let set = r.charges.iter().filter(|c| **c).count();
+            toasts.push(if set == r.charges.len() {
+                "@charges_all".into()
+            } else {
+                format!("@charge_set:{set}")
+            });
+            sounds.push("charge_set");
+        } else {
+            r.planting = Some((k, t - dt));
+        }
+    }
+    let busy = r.hold.is_some() || r.carry.is_some() || r.p.hanging();
     // toggles
     if on(ROUNDS) {
         r.lethal = !r.lethal;
@@ -1256,7 +1383,9 @@ fn player_tick(
     if on(RIDE) {
         mount(r, busy, sounds, toasts);
     }
-    if on(CROUCH) {
+    if (on(CROUCH) || on(PRONE)) && r.p.hanging() {
+        r.p.let_go();
+    } else if on(CROUCH) {
         if let Some((i, HoldAct::Grip)) = r.hold {
             // throw him down: out cold for a while
             knock_out(r, i, Life::Stunned(STUN_THROW));
@@ -1304,7 +1433,9 @@ fn player_tick(
     if bits & LEFT != 0 {
         side -= 1;
     }
-    let still = r.changing > 0 || matches!(r.hold, Some((_, HoldAct::Talk(_) | HoldAct::Choke(_))));
+    let still = r.changing > 0
+        || r.planting.is_some()
+        || matches!(r.hold, Some((_, HoldAct::Talk(_) | HoldAct::Choke(_))));
     let wish = if still || (fwd == 0 && side == 0) {
         V3::ZERO
     } else {
@@ -1333,6 +1464,21 @@ fn player_tick(
     }
     if let Some((at, rad)) = moved.noise {
         noise(r, at, rad, false);
+    }
+    // a dive bowls over a soldier in the way; he is up again soon
+    if r.p.dive > 0 {
+        let me = r.p.pos;
+        let hit = r.soldiers.iter().position(|s| {
+            s.free()
+                && v3(s.pos.x - me.x, 0, s.pos.z - me.z).len() < DIVE_REACH
+                && (s.pos.y - me.y).abs() < int(1)
+        });
+        if let Some(i) = hit {
+            knock_out(r, i, Life::Stunned(STUN_DIVE));
+            r.soldiers[i].awareness = int(100);
+            noise(r, me, NOISE_THROW, false);
+            sounds.push("throw");
+        }
     }
     if moved.step {
         sounds.push(if matches!(r.p.gait, Gait::Run | Gait::Sprint) {
@@ -1805,6 +1951,12 @@ fn use_press(r: &mut Run, m: &Mission, sounds: &mut Vec<&'static str>, toasts: &
             r.cloak = false;
             sounds.push("locker");
         }
+        Use::Plant(k) => {
+            r.planting = Some((k, PLANT_TIME));
+            r.p.set_stance(&r.world, Stance::Crouch);
+            sounds.push("plant");
+        }
+        Use::Detonate => detonate(r, m, sounds, toasts),
     }
 }
 
@@ -2089,7 +2241,7 @@ fn soldiers_tick(r: &mut Run, nav: &Nav, dt: i32, sounds: &mut Vec<&'static str>
             portals,
             balloons: &balloons,
             tick: r.tick,
-            reflex: r.reflex.is_some(),
+            hold_fire: r.reflex.is_some() || r.grace > 0,
         };
         let rng = &mut r.rng;
         for (i, s) in r.soldiers.iter_mut().enumerate() {
@@ -2209,6 +2361,21 @@ fn soldiers_tick(r: &mut Run, nav: &Nav, dt: i32, sounds: &mut Vec<&'static str>
             }
         }
     }
+    // a sighting after a while unseen goes out on the radio; while one
+    // soldier keeps his eyes on you the others go where they were last told
+    if seen {
+        if r.unseen >= RADIO_GAP {
+            let at = r.lkp;
+            for s in r.soldiers.iter_mut() {
+                s.radio(at);
+            }
+            sounds.push("radio");
+        }
+        r.unseen = 0;
+    } else {
+        r.unseen = (r.unseen + dt).min(RADIO_GAP);
+    }
+    r.grace = (r.grace - dt).max(0);
     // reflex mode: the spotter, slowed, until you stop him or it runs out
     if let Some((i, t)) = r.reflex {
         let s = &r.soldiers[i];
@@ -2403,6 +2570,18 @@ fn world_tick(
     names: &mut Rng,
 ) {
     let _ = m;
+    if let Some(t) = r.blown {
+        let next = t + dt;
+        if t < HELI_WAIT - HELI_APPROACH && next >= HELI_WAIT - HELI_APPROACH {
+            sounds.push("heli");
+            toasts.push("@heli_coming".into());
+        }
+        if t < HELI_WAIT && next >= HELI_WAIT {
+            sounds.push("heli");
+            toasts.push("@heli_down".into());
+        }
+        r.blown = Some(next);
+    }
     for t in r.tracers.iter_mut() {
         t.t -= dt;
     }
@@ -2523,6 +2702,18 @@ impl Game {
             } else {
                 let pose = match r.p.stance {
                     _ if r.riding => Pose::Ride { aim: r.aiming },
+                    _ if r
+                        .p
+                        .hang
+                        .is_some_and(|h| matches!(h.stage, player::Ledge::Up { .. })) =>
+                    {
+                        Pose::Crouch {
+                            walk,
+                            moving: false,
+                            aim: false,
+                        }
+                    }
+                    _ if r.p.hanging() => Pose::Hang { walk },
                     _ if r.p.dive > 0 => Pose::Dive {
                         t: DIVE_TIME - r.p.dive,
                     },
@@ -2716,6 +2907,26 @@ impl Game {
         for t in &r.tracers {
             draw::tracer(&mut b, t.from, t.to, p.get("tracer"));
         }
+        // the sabotage: charges set, the blast and its fires, the helicopter
+        for (k, at) in m.charges.iter().enumerate() {
+            match r.blown {
+                Some(t) => draw::blast(&mut b, *at, t, p.get("fire"), p.get("wreck")),
+                None if r.charges[k] => draw::charge(&mut b, *at, (r.tick / 30) % 2 == 0, p.get("charge")),
+                None => {}
+            }
+        }
+        if let Some(t) = r.blown {
+            if t >= HELI_WAIT - HELI_APPROACH {
+                let left = (HELI_WAIT - t).max(0);
+                let at = m.lz.add(v3(
+                    fx::mul(left, int(5)),
+                    fx::mul(left, int(3)),
+                    fx::mul(left, int(2)),
+                ));
+                let rotor = fx::mul(r.elapsed, int(3) * (fx::TURN / ONE)) & (fx::TURN - 1);
+                draw::helicopter(&mut b, at, deg(70), rotor, p.get("heli"), p.get("rotor"));
+            }
+        }
         let (v, runs) = b.finish();
         self.dynamic_vals = v;
         self.dynamic_runs = runs;
@@ -2810,6 +3021,8 @@ impl Game {
             "box"
         } else if r.riding {
             "riding"
+        } else if r.p.hanging() {
+            "hanging"
         } else {
             match r.p.stance {
                 Stance::Stand => "stand",
@@ -2859,6 +3072,16 @@ impl Game {
                 }
             }
         }
+        // the charge sites still to do; once all are set, the wreck-to-be
+        if m.kind == Kind::Sabotage && r.blown.is_none() {
+            for (k, at) in m.charges.iter().enumerate() {
+                if !r.charges[k] {
+                    if let Some((x, y)) = self.screen(at.add(v3(0, ONE, 0))) {
+                        markers.push(json!([x, y, "objective", dist(*at)]));
+                    }
+                }
+            }
+        }
         for pl in &r.places {
             if let Some((x, y)) = self.screen(pl.add(v3(0, int(2), 0))) {
                 markers.push(json!([x, y, "place", dist(*pl)]));
@@ -2899,6 +3122,8 @@ impl Game {
             Use::TakeCase => "use_case",
             Use::CarryBody(_) => "use_carry",
             Use::Hide(_) => "use_hide",
+            Use::Plant(_) => "use_plant",
+            Use::Detonate => "use_detonate",
         };
         let mut prompts = vec![use_now];
         if let Some((_, act)) = r.hold {
@@ -2921,6 +3146,12 @@ impl Game {
         }
         if r.mule.talk > 0 {
             prompts.push("hold_talking");
+        }
+        if r.p.hang.is_some_and(|h| h.stage == player::Ledge::Hang) {
+            prompts.push("hanging");
+        }
+        if r.planting.is_some() {
+            prompts.push("planting");
         }
         prompts.push(match tie_target(r) {
             _ if r.riding || r.p.locker.is_some() => "",
@@ -2976,7 +3207,13 @@ impl Game {
             "aim": r.aiming,
             "prompts": prompts,
             "objective": m.objective,
-            "objective_note": if done || r.target_known { "" } else { m.objective_unknown.as_str() },
+            "objective_note": if m.kind == Kind::Sabotage {
+                sabotage_note(r, m)
+            } else if done || r.target_known {
+                String::new()
+            } else {
+                m.objective_unknown.clone()
+            },
             "objective_done": done,
             "intel": intel,
             "intel_total": m.intel.len(),
@@ -3058,6 +3295,18 @@ impl Game {
     }
 }
 
+/// Where the sabotage stands, for the HUD: a copy.json key and its number.
+fn sabotage_note(r: &Run, m: &Mission) -> String {
+    let set = r.charges.iter().filter(|c| **c).count();
+    match r.blown {
+        Some(t) if t >= HELI_WAIT => "@sab_heli".into(),
+        Some(t) => format!("@sab_hold:{}", (HELI_WAIT - t) / ONE + 1),
+        None if set < r.charges.len() => format!("@sab_charges:{set}"),
+        None if clear_of_mech(r, m) => "@sab_go".into(),
+        None => format!("@sab_clear:{}", (SAFE_DISTANCE - mech_distance(r, m)) / ONE + 1),
+    }
+}
+
 fn soldier_fan(phase: Phase) -> i32 {
     match phase {
         Phase::Combat(_) => crate::balance::FAN_NEAR,
@@ -3108,6 +3357,7 @@ pub fn noise_samples(n: u32, seed: u32) -> Vec<i32> {
 mod tests {
     use super::*;
     use crate::geom::yaw_pitch_of;
+    use crate::world::MECH_DECK_DM;
 
     pub fn game() -> Game {
         Game::new(
@@ -3968,5 +4218,254 @@ mod tests {
         assert!(posed, "drawn as a dive while in the air");
         assert_eq!(r(&mut g).p.stance, Stance::Prone);
         assert!(!r(&mut g).p.airborne);
+    }
+
+    /// Puts her on the ground or on top of whatever is under (`x`, `z`), facing `yaw` degrees.
+    fn put(g: &mut Game, x: V3, yaw: i32) {
+        let r = r(g);
+        r.p.pos = v3(x.x, r.world.ground(x, RADIUS, x.y + STEP), x.z);
+        r.p.yaw = deg(yaw);
+        r.cam_yaw = deg(yaw);
+        r.p.stance = Stance::Stand;
+        r.p.hang = None;
+        r.p.vault = None;
+        r.p.airborne = false;
+        r.p.vy = 0;
+    }
+
+    #[test]
+    fn the_deterrence_unit_is_climbed_tier_by_tier_from_the_stairs_to_the_deck() {
+        let mut g = start(3);
+        only(&mut g, &[]);
+        let stairs = g.missions[3].charges[0];
+        let mech = g.missions[3].target_place.unwrap();
+        // west of the left foot, level with the stair plates, walking east
+        put(&mut g, v3(mech.x - int(25), 0, mech.z), 270);
+        let mut t = 0;
+        run(&mut g, FORWARD, 240, &mut t);
+        assert_eq!(r(&mut g).p.pos.y, int(2), "walked up the plates onto the foot");
+        let mut hangs = 0;
+        for _ in 0..8 {
+            press(&mut g, JUMP, &mut t);
+            for _ in 0..30 {
+                run(&mut g, 0, 1, &mut t);
+                if r(&mut g).p.hanging() && r(&mut g).p.hang.unwrap().stage == player::Ledge::Hang {
+                    hangs += 1;
+                    break;
+                }
+            }
+            run(&mut g, FORWARD, 100, &mut t);
+        }
+        let y = r(&mut g).p.pos.y;
+        assert_eq!(
+            y,
+            ratio(MECH_DECK_DM, 10),
+            "on the deck after {hangs} hangs, at {y}"
+        );
+        assert!(hangs >= 6, "each tier is a hang, not a vault: {hangs}");
+        let _ = stairs;
+    }
+
+    #[test]
+    fn four_charges_set_then_from_far_off_the_mech_blows_and_the_helicopter_comes() {
+        let mut g = start(3);
+        only(&mut g, &[0, 1, 2]);
+        let m = g.missions[3].clone();
+        let mut t = 0;
+        let hud = |g: &Game| -> Value { serde_json::from_str(&g.hud_json()).unwrap() };
+        assert_eq!(hud(&g)["play"]["objective_note"], "@sab_charges:0");
+        for (k, at) in m.charges.iter().enumerate() {
+            put(&mut g, *at, 0);
+            let h = hud(&g);
+            assert!(
+                h["play"]["prompts"]
+                    .as_array()
+                    .unwrap()
+                    .contains(&json!("use_plant")),
+                "{k}: {h}"
+            );
+            press(&mut g, USE, &mut t);
+            assert!(r(&mut g).planting.is_some());
+            // she stays put while she sets it
+            let here = r(&mut g).p.pos;
+            run(&mut g, FORWARD, 60, &mut t);
+            assert_eq!(r(&mut g).p.pos, here);
+            run(&mut g, 0, 150, &mut t);
+            assert!(r(&mut g).charges[k], "charge {k} set");
+        }
+        assert!(r(&mut g).blown.is_none());
+        // too near: E does nothing and the HUD says how much further
+        put(&mut g, m.target_place.unwrap().add(v3(int(30), 0, int(30))), 0);
+        press(&mut g, USE, &mut t);
+        assert!(r(&mut g).blown.is_none(), "too near to set them off");
+        assert!(hud(&g)["play"]["objective_note"]
+            .as_str()
+            .unwrap()
+            .starts_with("@sab_clear:"));
+        // far enough, outside the west wall
+        put(&mut g, v3(-int(88), 0, int(10)), 90);
+        assert_eq!(hud(&g)["play"]["objective_note"], "@sab_go");
+        press(&mut g, USE, &mut t);
+        assert!(r(&mut g).blown.is_some(), "they went off");
+        assert!(r(&mut g).world.mech_wrecked());
+        assert!(matches!(r(&mut g).phase, Phase::Combat(_)));
+        // the base is out hunting, but nobody knows where she is
+        let me = r(&mut g).p.pos;
+        for s in r(&mut g).soldiers.iter().filter(|s| s.life != Life::Gone) {
+            assert!(
+                s.lkp.dist(me) > int(30),
+                "a soldier was told where she is: {:?}",
+                s.lkp
+            );
+        }
+        // the deck crew were blown down to the ground
+        assert!(hud(&g)["play"]["objective_note"]
+            .as_str()
+            .unwrap()
+            .starts_with("@sab_hold:"));
+        // no helicopter yet at the landing zone
+        let lz = m.lz;
+        put(&mut g, lz, 0);
+        run(&mut g, 0, 5, &mut t);
+        assert_eq!(g.mode(), Mode::Play);
+        // hidden, she waits it out
+        r(&mut g).p.pos = v3(-int(95), 0, int(95));
+        only(&mut g, &[]);
+        run(&mut g, 0, (HELI_WAIT / DT) as usize + 10, &mut t);
+        assert_eq!(hud(&g)["play"]["objective_note"], "@sab_heli");
+        put(&mut g, lz, 0);
+        run(&mut g, 0, 5, &mut t);
+        assert_eq!(g.mode(), Mode::Complete);
+    }
+
+    #[test]
+    fn the_blast_throws_the_deck_crew_off_the_mech() {
+        let mut g = start(3);
+        let deck: Vec<usize> = r(&mut g)
+            .soldiers
+            .iter()
+            .enumerate()
+            .filter(|(_, s)| s.deck)
+            .map(|(i, _)| i)
+            .collect();
+        assert!(deck.len() >= 2);
+        let m = g.missions[3].clone();
+        for c in r(&mut g).charges.iter_mut() {
+            *c = true;
+        }
+        let mut sounds = Vec::new();
+        let mut toasts = Vec::new();
+        detonate(r(&mut g), &m, &mut sounds, &mut toasts);
+        for i in deck {
+            let s = &r(&mut g).soldiers[i];
+            assert_eq!(s.pos.y, 0, "on the ground");
+            assert!(matches!(s.life, Life::Stunned(_)), "{:?}", s.life);
+        }
+    }
+
+    #[test]
+    fn in_combat_soldiers_who_cannot_see_her_go_where_she_was_spotted_not_where_she_is() {
+        let mut g = start(0);
+        only(&mut g, &[2, 3]);
+        // soldier 2 has her in sight (and no rifle to shoot with); 3 is
+        // inside the barracks, walls between them
+        let barracks = r(&mut g).world.place_at("barracks").unwrap();
+        r(&mut g).soldiers[3].pos = barracks;
+        r(&mut g).soldiers[3].perch = true;
+        let s2 = r(&mut g).soldiers[2].pos;
+        let yaw = r(&mut g).soldiers[2].yaw;
+        r(&mut g).soldiers[2].rifle_down = Some(s2);
+        r(&mut g).soldiers[2].perch = true;
+        let spotted = s2.add(facing(yaw, 0).scale(int(8)));
+        put(&mut g, spotted, 0);
+        let mut sounds = Vec::new();
+        start_combat(r(&mut g), &mut sounds);
+        let at_spot = r(&mut g).p.pos;
+        assert_eq!(r(&mut g).soldiers[3].lkp, at_spot, "the alarm says where she is");
+        // she keeps moving in sight of soldier 2
+        let mut t = 0;
+        for k in 0..120 {
+            let p = spotted.add(right_of(yaw).scale(ratio(k, 30)));
+            r(&mut g).p.pos = v3(p.x, 0, p.z);
+            run(&mut g, 0, 1, &mut t);
+            let (eyes, me) = (r(&mut g).soldiers[3].eyes(), r(&mut g).p.chest());
+            assert!(!r(&mut g).world.clear(eyes, me), "soldier 3 is walled off");
+        }
+        let now = r(&mut g).p.pos;
+        assert!(now.dist(at_spot) > int(3));
+        assert!(
+            r(&mut g).soldiers[2].lkp.dist(now) < ONE,
+            "the one who sees her knows"
+        );
+        assert_eq!(
+            r(&mut g).soldiers[3].lkp,
+            at_spot,
+            "the other still goes where she was spotted"
+        );
+    }
+
+    #[test]
+    fn reflex_mode_lasts_half_as_long_and_nobody_fires_the_moment_it_ends() {
+        let mut g = start(0);
+        only(&mut g, &[2]);
+        let s = r(&mut g).soldiers[2].pos;
+        let yaw = r(&mut g).soldiers[2].yaw;
+        r(&mut g).soldiers[2].wait = int(100);
+        let at = s.add(facing(yaw, 0).scale(int(10)));
+        put(&mut g, at, 0);
+        let mut t = 0;
+        let mut reflex_real_ticks = 0;
+        let mut combat_at = None;
+        let mut first_shot = None;
+        for frame in 0..2000 {
+            t += TICK_US;
+            g.advance(t, FOCUS, 0, 0);
+            if first_shot.is_none() && !r(&mut g).tracers.is_empty() {
+                first_shot = Some(frame);
+                break;
+            }
+            if g.mode() != Mode::Play {
+                break;
+            }
+            if r(&mut g).reflex.is_some() {
+                reflex_real_ticks += 1;
+            }
+            if combat_at.is_none() && matches!(r(&mut g).phase, Phase::Combat(_)) {
+                combat_at = Some(frame);
+            }
+        }
+        // two and a half seconds of real time
+        assert!(
+            (140..=160).contains(&reflex_real_ticks),
+            "{reflex_real_ticks} frames of reflex"
+        );
+        let gap = first_shot.unwrap() - combat_at.unwrap();
+        assert!(gap >= COMBAT_GRACE / DT, "shot {gap} frames after the alarm");
+    }
+
+    #[test]
+    fn a_dive_knocks_a_soldier_down_and_he_gets_up_soon_after() {
+        let mut g = start(0);
+        only(&mut g, &[2]);
+        let s = r(&mut g).soldiers[2].pos;
+        r(&mut g).soldiers[2].wait = int(100);
+        r(&mut g).soldiers[2].perch = true;
+        // sprinting at him from behind
+        let yaw = r(&mut g).soldiers[2].yaw;
+        put(&mut g, s.sub(facing(yaw, 0).scale(int(8))), 0);
+        let face = yaw_pitch_of(s.sub(r(&mut g).p.pos)).0;
+        r(&mut g).cam_yaw = face;
+        r(&mut g).p.yaw = face;
+        let mut t = 0;
+        let mut downed = false;
+        run(&mut g, FORWARD | SPRINT, 40, &mut t);
+        run(&mut g, FORWARD | SPRINT | JUMP, 1, &mut t);
+        for _ in 0..60 {
+            run(&mut g, 0, 1, &mut t);
+            downed |= matches!(r(&mut g).soldiers[2].life, Life::Stunned(_));
+        }
+        assert!(downed, "the dive knocked him over");
+        run(&mut g, 0, (STUN_DIVE / DT) as usize + 10, &mut t);
+        assert!(r(&mut g).soldiers[2].awake(), "{:?}", r(&mut g).soldiers[2].life);
     }
 }

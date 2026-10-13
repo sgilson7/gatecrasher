@@ -30,6 +30,26 @@ pub fn stride(phase: i32, speed: i32, dt: i32, base: i32, grow: i32) -> i32 {
     (phase + fx::div(fx::mul(speed.max(0), dt), length.max(ONE / 10))) & (fx::TURN - 1)
 }
 
+/// Hanging from a ledge, Uncharted style: the leap up to it, the hang
+/// (shimmy left and right), and the climb up onto the top.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Ledge {
+    Grab { from: V3, t: i32 },
+    Hang,
+    Up { to: V3, t: i32 },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Hang {
+    /// flat unit vector into the wall
+    pub dir: V3,
+    /// the height of the ledge
+    pub top: i32,
+    /// her feet while hanging
+    pub at: V3,
+    pub stage: Ledge,
+}
+
 #[derive(Debug, Clone)]
 pub struct Player {
     pub pos: V3,
@@ -43,7 +63,9 @@ pub struct Player {
     pub push: V3,
     pub airborne: bool,
     pub fall_top: i32,
-    pub vault: Option<(V3, V3, i32)>,
+    /// a vault: from, to, time so far, and how high the arc lifts
+    pub vault: Option<(V3, V3, i32, i32)>,
+    pub hang: Option<Hang>,
     pub dive: i32,
     pub step_t: i32,
     pub walk_phase: i32,
@@ -74,6 +96,7 @@ impl Player {
             airborne: false,
             fall_top: pos.y,
             vault: None,
+            hang: None,
             dive: 0,
             step_t: 0,
             walk_phase: 0,
@@ -132,15 +155,19 @@ impl Player {
         dt: i32,
     ) -> Moved {
         let mut out = Moved::default();
-        if let Some((from, to, t)) = self.vault {
+        if self.hang.is_some() {
+            self.hang_step(world, wish, dt);
+            return out;
+        }
+        if let Some((from, to, t, arc)) = self.vault {
             let t = t + dt;
             let k = fx::div(t.min(VAULT_TIME), VAULT_TIME);
-            let lift = fx::mul(fx::sin(fx::mul(k, fx::HALF)), ratio(5, 10));
+            let lift = fx::mul(fx::sin(fx::mul(k, fx::HALF)), arc);
             self.pos = from.lerp(to, k).add(v3(0, lift, 0));
             self.vault = if t >= VAULT_TIME {
                 None
             } else {
-                Some((from, to, t))
+                Some((from, to, t, arc))
             };
             if self.vault.is_none() {
                 self.pos = to;
@@ -259,25 +286,92 @@ impl Player {
         out
     }
 
-    /// Space: vault a ledge ahead if there is one, dive out of a sprint,
-    /// or stand up. Returns true for a vault.
+    /// The ledge in front of her feet `at` along `dir`: how far ahead its
+    /// face is and how high its top, if it is a top she could reach (no higher
+    /// than a hang) with room above it.
+    pub fn ledge(world: &World, at: V3, dir: V3) -> Option<(i32, i32)> {
+        let mut d = ratio(3, 10);
+        while d <= int_(1) {
+            let probe = at.add(dir.scale(d));
+            let top = world.ground(probe, ONE / 20, at.y + HANG_MAX - STEP);
+            let above = world.blocked(probe, ONE / 20, top + ONE / 50, top + HEIGHT_CROUCH);
+            if world.blocked(probe, ONE / 20, at.y + STEP, at.y + HANG_MAX + HEIGHT_CROUCH) {
+                return if top > at.y + STEP && !above {
+                    Some((d, top))
+                } else {
+                    None
+                };
+            }
+            d += ONE / 20;
+        }
+        None
+    }
+
+    /// Space: vault a ledge ahead (over it if it is low and thin), leap up and
+    /// grab a higher one, climb up from a hang, dive out of a sprint, or stand
+    /// up. Returns true for a vault or a grab (they make a little noise).
     pub fn jump(&mut self, world: &World) -> bool {
+        if let Some(h) = self.hang {
+            if h.stage == Ledge::Hang {
+                self.climb_up(world);
+            }
+            return false;
+        }
         if self.dive > 0 {
             return false;
         }
         if self.airborne || self.vault.is_some() || self.boxed {
             return false;
         }
-        let ahead = self.pos.add(facing(self.yaw, 0).scale(ratio(8, 10)));
-        let top = world.ground(ahead, RADIUS / 2, self.pos.y + VAULT_MAX - STEP);
-        if top > self.pos.y + STEP && top <= self.pos.y + VAULT_MAX {
-            let to = v3(ahead.x, top, ahead.z);
-            if !world.blocked(to, RADIUS, top + ONE / 20, top + HEIGHT_CROUCH) {
-                self.vault = Some((self.pos, to, 0));
-                if self.stance == Stance::Prone {
-                    self.stance = Stance::Crouch;
+        let dir = facing(self.yaw, 0);
+        if let Some((d, top)) = Player::ledge(world, self.pos, dir) {
+            let rise = top - self.pos.y;
+            if rise <= MANTLE_OVER && self.gait != Gait::Still {
+                // on the move, over a low, thin thing: find where it ends and land beyond
+                let mut e = d + ONE / 10;
+                while e <= d + MANTLE_DEPTH {
+                    let probe = self.pos.add(dir.scale(e));
+                    if world.ground(probe, ONE / 20, top) < top - STEP {
+                        let land = self.pos.add(dir.scale(e + RADIUS + ONE / 10));
+                        let g = world.ground(land, RADIUS, top);
+                        let to = v3(land.x, g, land.z);
+                        if g < top - STEP && !world.blocked(to, RADIUS, g + STEP, g + HEIGHT_STAND) {
+                            let mid = (self.pos.y + g) / 2;
+                            let arc = (top + ratio(35, 100) - mid).max(ratio(5, 10));
+                            self.vault = Some((self.pos, to, 0, arc));
+                            self.stance = Stance::Stand;
+                            return true;
+                        }
+                        break;
+                    }
+                    e += ONE / 10;
                 }
-                return true;
+            }
+            if rise <= VAULT_MAX {
+                let ahead = self.pos.add(dir.scale(d + RADIUS + ONE / 10));
+                let to = v3(ahead.x, top, ahead.z);
+                if !world.blocked(to, RADIUS, top + ONE / 20, top + HEIGHT_CROUCH) {
+                    self.vault = Some((self.pos, to, 0, ratio(5, 10)));
+                    if self.stance == Stance::Prone {
+                        self.stance = Stance::Crouch;
+                    }
+                    return true;
+                }
+            } else if self.stance != Stance::Prone {
+                // too high to vault: leap and hang from it
+                let foot = self.pos.add(dir.scale(d - RADIUS - ONE / 50));
+                let at = v3(foot.x, top - HANG_REACH, foot.z);
+                if !world.blocked(at, RADIUS - ONE / 10, at.y + ONE / 10, top - ONE / 20) {
+                    self.hang = Some(Hang {
+                        dir,
+                        top,
+                        at,
+                        stage: Ledge::Grab { from: self.pos, t: 0 },
+                    });
+                    self.stance = Stance::Stand;
+                    self.yaw = fx::atan2(-dir.x, -dir.z);
+                    return true;
+                }
             }
         }
         if self.gait == Gait::Sprint && self.stance == Stance::Stand {
@@ -290,6 +384,114 @@ impl Player {
             self.set_stance(world, Stance::Stand);
         }
         false
+    }
+
+    pub fn hanging(&self) -> bool {
+        self.hang.is_some()
+    }
+
+    /// From a hang: up onto the top, if there is room to crouch there.
+    pub fn climb_up(&mut self, world: &World) -> bool {
+        let Some(mut h) = self.hang else {
+            return false;
+        };
+        let to = h.at.add(h.dir.scale(RADIUS * 2 + ratio(15, 100)));
+        let to = v3(to.x, h.top, to.z);
+        if world.blocked(to, RADIUS - ONE / 20, h.top + ONE / 50, h.top + HEIGHT_CROUCH) {
+            return false;
+        }
+        h.stage = Ledge::Up { to, t: 0 };
+        self.hang = Some(h);
+        true
+    }
+
+    /// Lets go of the ledge.
+    pub fn let_go(&mut self) {
+        if let Some(h) = self.hang {
+            if h.stage == Ledge::Hang {
+                self.hang = None;
+                self.pos = h.at.sub(h.dir.scale(ONE / 10));
+                self.fall_top = self.pos.y;
+            }
+        }
+    }
+
+    fn hang_step(&mut self, world: &World, wish: V3, dt: i32) {
+        let Some(mut h) = self.hang else {
+            return;
+        };
+        self.vel = V3::ZERO;
+        self.vy = 0;
+        self.push = V3::ZERO;
+        self.dive = 0;
+        self.airborne = false;
+        self.gait = Gait::Still;
+        match h.stage {
+            Ledge::Grab { from, t } => {
+                let t = t + dt;
+                let k = fx::div(t.min(GRAB_TIME), GRAB_TIME);
+                self.pos = from.lerp(h.at, k);
+                h.stage = if t >= GRAB_TIME {
+                    Ledge::Hang
+                } else {
+                    Ledge::Grab { from, t }
+                };
+            }
+            Ledge::Hang => {
+                let right = v3(-h.dir.z, 0, h.dir.x);
+                let along = fx::mul(wish.x, right.x) + fx::mul(wish.z, right.z);
+                let into = fx::mul(wish.x, h.dir.x) + fx::mul(wish.z, h.dir.z);
+                if into > ratio(7, 10) {
+                    self.hang = Some(h);
+                    self.climb_up(world);
+                    return;
+                }
+                if into < -ratio(7, 10) {
+                    self.hang = Some(h);
+                    self.let_go();
+                    return;
+                }
+                if along.abs() > ONE / 2 {
+                    let step = right.scale(fx::mul(SHIMMY, dt) * along.signum());
+                    let next = h.at.add(step);
+                    // the ledge must go on, at the same height, with nothing on it
+                    let probe = next.add(h.dir.scale(RADIUS + ONE / 10));
+                    let top = world.ground(probe, ONE / 20, h.top - STEP);
+                    let ok = (top - h.top).abs() < ONE / 10
+                        && !world.blocked(probe, ONE / 20, h.top + ONE / 50, h.top + HEIGHT_CROUCH)
+                        && !world.blocked(next, RADIUS - ONE / 10, next.y + ONE / 10, h.top - ONE / 20);
+                    if ok {
+                        h.at = next;
+                        self.walk_phase = (self.walk_phase + fx::mul(fx::TURN / 2, dt)) & (fx::TURN - 1);
+                    }
+                }
+                self.pos = h.at;
+            }
+            Ledge::Up { to, t } => {
+                let t = t + dt;
+                let k = fx::div(t.min(CLIMB_TIME), CLIMB_TIME);
+                let rise = ratio(6, 10);
+                self.pos = if k < rise {
+                    let a = fx::div(k, rise);
+                    v3(h.at.x, h.at.y + fx::mul(h.top - h.at.y, a), h.at.z)
+                } else {
+                    let a = fx::div(k - rise, ONE - rise);
+                    let flat = v3(h.at.x, h.top, h.at.z).lerp(to, a);
+                    v3(flat.x, h.top, flat.z)
+                };
+                if t >= CLIMB_TIME {
+                    self.pos = to;
+                    self.fall_top = to.y;
+                    self.hang = None;
+                    self.stance = Stance::Crouch;
+                    self.set_stance(world, Stance::Stand);
+                    return;
+                }
+                h.stage = Ledge::Up { to, t };
+            }
+        }
+        self.fall_top = self.pos.y;
+        self.hang = Some(h);
     }
 }
 
@@ -490,6 +692,89 @@ mod tests {
         assert!(!p.jump(&w));
         run(&mut p, &w, V3::ZERO, false, 40);
         assert_eq!(p.stance, Stance::Prone);
+    }
+
+    /// Flat ground and one wall across x, `h` high, from z = −`deep` to 0.
+    fn wall(h: i32, deep: i32) -> World {
+        let mut w = World::default();
+        w.add(v3(-int(5), 0, -deep), v3(int(5), h, 0), [0, 0, 0], 0);
+        w
+    }
+
+    #[test]
+    fn on_the_move_space_vaults_clean_over_a_low_thin_wall() {
+        let w = wall(ratio(1, 1), ratio(5, 10));
+        // walking north (−z) at it from the south
+        let mut p = Player::new(v3(0, 0, ratio(8, 10)), 0);
+        p.stance = Stance::Stand;
+        run(&mut p, &w, v3(0, 0, -ONE), false, 5);
+        assert!(p.jump(&w));
+        run(&mut p, &w, V3::ZERO, false, 60);
+        assert!(p.pos.z < -ratio(5, 10), "landed beyond it: z {}", p.pos.z);
+        assert_eq!(p.pos.y, 0);
+        // standing still, the same press puts her on top instead
+        let mut p = Player::new(v3(0, 0, ratio(8, 10)), 0);
+        p.stance = Stance::Stand;
+        assert!(p.jump(&w));
+        run(&mut p, &w, V3::ZERO, false, 60);
+        assert_eq!(p.pos.y, ONE, "on top");
+    }
+
+    #[test]
+    fn a_ledge_too_high_to_vault_is_leapt_at_hung_from_shimmied_along_and_climbed() {
+        let top = ratio(23, 10);
+        let w = wall(top, int(3));
+        let mut p = Player::new(v3(0, 0, ratio(7, 10)), 0);
+        p.stance = Stance::Stand;
+        assert!(p.jump(&w), "grabs the ledge");
+        run(&mut p, &w, V3::ZERO, false, 30);
+        assert!(
+            matches!(
+                p.hang,
+                Some(Hang {
+                    stage: Ledge::Hang,
+                    ..
+                })
+            ),
+            "{:?}",
+            p.hang
+        );
+        assert_eq!(p.pos.y, top - HANG_REACH, "hanging by the hands");
+        // she hangs: no fall
+        run(&mut p, &w, V3::ZERO, false, 120);
+        assert!(p.hanging());
+        // shimmy east along it
+        let x0 = p.pos.x;
+        run(&mut p, &w, v3(ONE, 0, 0), false, 60);
+        assert!(
+            p.pos.x - x0 > ratio(9, 10),
+            "moved {} along the ledge",
+            p.pos.x - x0
+        );
+        // up and over the top
+        run(&mut p, &w, v3(0, 0, -ONE), false, 1);
+        run(&mut p, &w, V3::ZERO, false, 70);
+        assert!(!p.hanging());
+        assert_eq!(p.pos.y, top, "on top of the wall");
+        assert_eq!(p.stance, Stance::Stand);
+    }
+
+    #[test]
+    fn she_lets_go_of_a_ledge_and_cannot_reach_one_too_high() {
+        let w = wall(ratio(23, 10), int(3));
+        let mut p = Player::new(v3(0, 0, ratio(7, 10)), 0);
+        p.stance = Stance::Stand;
+        p.jump(&w);
+        run(&mut p, &w, V3::ZERO, false, 30);
+        p.let_go();
+        run(&mut p, &w, V3::ZERO, false, 60);
+        assert!(!p.hanging());
+        assert_eq!(p.pos.y, 0);
+        let w = wall(ratio(35, 10), int(3));
+        let mut p = Player::new(v3(0, 0, ratio(7, 10)), 0);
+        p.stance = Stance::Stand;
+        assert!(!p.jump(&w));
+        assert!(!p.hanging());
     }
 
     #[test]
